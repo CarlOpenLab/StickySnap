@@ -1,0 +1,6 @@
+build/
+.vs/
+*.user
+test/out/
+__pycache__/
+Thumbs.db

@@ -1,0 +1,206 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; padding: 28px; background: light-dark(#f2f3f5, #0A0B0E);
+         font-family: "Space Grotesk", "PingFang SC", "Microsoft YaHei", sans-serif;
+         color: light-dark(#1c1f24, #F4F5F7); }
+  h3 { margin: 0 0 6px; }
+  .hint { color: light-dark(#6b7078, rgba(226,231,240,.64)); font-size: 13px; margin: 0 0 18px; }
+  .sec { margin-bottom: 30px; }
+  .sec > .label { font-size: 12px; letter-spacing: .08em; text-transform: uppercase;
+                  opacity: .55; margin-bottom: 10px; }
+  /* —— 落地页 .xbar 1:1（可交互）—— */
+  .xbar { display: inline-flex; flex-direction: column; gap: 5px; width: max-content; }
+  .xrow { display: flex; align-items: center; gap: 3px; padding: 4.5px; background: #161A22;
+          border: 1px solid rgba(255,255,255,.09); border-radius: 9px;
+          box-shadow: 0 12px 32px rgba(0,0,0,.4); width: max-content; }
+  .xbtn { width: 26px; height: 26px; border-radius: 6px; display: grid; place-items: center;
+          color: #C7CDD8; border: 1px solid transparent; flex: none; cursor: pointer;
+          transition: background .12s ease, color .12s ease; }
+  .xbtn svg { width: 14px; height: 14px; display: block; }
+  .xbtn:hover { background: #262A31; color: #F4F5F7; }
+  .xbtn.on { background: #FF4B3E; color: #fff; }
+  .xbtn.on:hover { background: #FF5D52; }
+  .xsep { width: 1px; align-self: stretch; background: rgba(255,255,255,.12); margin: 2px 4px; }
+  .cdot { width: 13px; height: 13px; border-radius: 50%; flex: none; margin: 0 2.5px;
+          cursor: pointer; transition: outline-color .12s ease; outline: 2px solid transparent;
+          outline-offset: 1.5px; }
+  .cdot:hover { outline-color: rgba(255,255,255,.45); }
+  .cdot.on { outline-color: #fff; }
+  .wdot { border-radius: 50%; background: #C7CDD8; flex: none; margin: 0 3.5px; cursor: pointer;
+          transition: outline-color .12s ease; outline: 2px solid transparent; outline-offset: 1.5px; }
+  .wdot:hover { outline-color: rgba(255,255,255,.45); }
+  .wdot.on { outline-color: #fff; }
+  /* —— 状态矩阵 —— */
+  .matrix { display: grid; grid-template-columns: repeat(11, minmax(64px, 1fr));
+            gap: 14px 10px; width: max-content; }
+  .mcell { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .mstate { width: 26px; height: 26px; border-radius: 6px; display: grid; place-items: center;
+            transition: background .12s ease; }
+  .mstate.normal { color: #C7CDD8; }
+  .mstate.hover { background: #262A31; color: #F4F5F7; }
+  .mstate.active { background: #FF4B3E; color: #fff; }
+  .mname { font-size: 11px; opacity: .55; }
+  .mcol { font-size: 11px; opacity: .45; text-align: center; }
+  .zoomrow { display: flex; gap: 36px; align-items: flex-start; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<div id="app">
+  <h3>StickySnap 工具栏 · 状态检查台</h3>
+  <p class="hint">① 把鼠标悬停到任意图标上看 hover 态，点击切换激活态（红色）&nbsp;&nbsp;② 状态矩阵：11 个图标的 normal / hover / active 三态一览&nbsp;&nbsp;③ 3 倍细节</p>
+
+  <div class="sec">
+    <div class="label">Interactive · 可交互（hover + 点击）</div>
+    <div class="xbar" id="live"></div>
+  </div>
+
+  <div class="sec">
+    <div class="label">State Matrix · 11 图标 × 3 状态</div>
+    <div class="matrix" id="matrix"></div>
+  </div>
+
+  <div class="sec">
+    <div class="label">3x Zoom · 细节</div>
+    <div class="zoomrow" id="zoomrow"></div>
+  </div>
+</div>
+<script>
+// 落地页定制图标 path 数据（与 make_icons.py 同源）
+const ICONS = [
+  ['矩形', '<rect x="4" y="6.5" width="16" height="11" rx="1"/>'],
+  ['椭圆', '<ellipse cx="12" cy="12" rx="8" ry="5.5"/>'],
+  ['箭头', '<path d="M6 18 L18 6"/><path d="M12.5 6 H18 V11.5"/>'],
+  ['画笔', '<path d="M13.5 6.5 l4 4"/><path d="M4 20 l1.2-4.6 10.8-10.8 a2 2 0 0 1 2.8 0 l1.6 1.6 a2 2 0 0 1 0 2.8 L9.6 19.8 4 20 Z"/>'],
+  ['荧光笔', '<path d="M4 20h7"/><path d="M8 16l7.5-11 3.4 2.3L11.4 18l-4.6.9L8 16Z"/>'],
+  ['马赛克', '<path d="M4 4h7v7H4z"/><path d="M13 4h7v7h-7z"/><path d="M4 13h7v7H4z"/><path d="M13 13h7v7h-7z"/>'],
+  ['撤销', '<path d="M7.5 5 3.5 8.5 7.5 12"/><path d="M4 8.5 H15 a5.5 5.5 0 0 1 0 11 H8"/>'],
+  ['贴图', '<path d="M9.5 3.5h5l-.7 4.2 2.7 3.3H7.5l2.7-3.3L9.5 3.5Z"/><path d="M12 11v9"/>'],
+  ['复制', '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>'],
+  ['保存', '<path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4"/><path d="M8 20v-6h8v6"/>'],
+  ['取消', '<path d="M6 6l12 12M18 6L6 18"/>'],
+];
+const NS = "http://www.w3.org/2000/svg";
+const PALETTE = ["#E5484D", "#FF8D3A", "#F7C948", "#46A758", "#2F6FED",
+                 "#7A5AF8", "#E36BAA", "#0EA5A5", "#F2F2F2"];
+const DOTS = [5, 8, 12];
+
+function makeSvg(size, color, sw, inner) {
+  const s = document.createElementNS(NS, "svg");
+  s.setAttribute("width", size);
+  s.setAttribute("height", size);
+  s.setAttribute("viewBox", "0 0 24 24");
+  s.setAttribute("fill", "none");
+  s.setAttribute("stroke", color);
+  s.setAttribute("stroke-width", sw);
+  s.setAttribute("stroke-linecap", "round");
+  s.setAttribute("stroke-linejoin", "round");
+  s.innerHTML = inner;
+  return s;
+}
+
+// —— 可交互工具栏：hover 即时反馈，工具点击互斥切换激活 ——
+function buildLive(host) {
+  const xbar = document.createElement("div");
+  xbar.className = "xbar";
+  const r1 = document.createElement("div"); r1.className = "xrow";
+  const r2 = document.createElement("div"); r2.className = "xrow";
+  const btns = [];
+  for (let i = 0; i < ICONS.length; i++) {
+    if (i === 6 || i === 7) {
+      const sep = document.createElement("span");
+      sep.className = "xsep";
+      r1.appendChild(sep);
+    }
+    const b = document.createElement("span");
+    b.className = "xbtn";
+    b.title = ICONS[i][0];
+    b.appendChild(makeSvg(14, "currentColor", 1.7, ICONS[i][1]));
+    b.addEventListener("click", () => {
+      if (i < 6) {  // 工具互斥
+        btns.forEach((o, k) => { if (k < 6) o.classList.toggle("on", o === b); });
+      } else if (i === 7) {  // 贴图 = 开关
+        b.classList.toggle("on");
+      }
+    });
+    btns.push(b);
+    r1.appendChild(b);
+  }
+  PALETTE.forEach((c, k) => {
+    const d = document.createElement("span");
+    d.className = "cdot" + (k === 4 ? " on" : "");
+    d.style.background = c;
+    d.addEventListener("click", () => {
+      r2.querySelectorAll(".cdot").forEach(o => o.classList.remove("on"));
+      d.classList.add("on");
+    });
+    r2.appendChild(d);
+  });
+  const sep = document.createElement("span");
+  sep.className = "xsep";
+  r2.appendChild(sep);
+  DOTS.forEach((d, k) => {
+    const w = document.createElement("span");
+    w.className = "wdot" + (k === 1 ? " on" : "");
+    w.style.width = d + "px";
+    w.style.height = d + "px";
+    w.addEventListener("click", () => {
+      r2.querySelectorAll(".wdot").forEach(o => o.classList.remove("on"));
+      w.classList.add("on");
+    });
+    r2.appendChild(w);
+  });
+  xbar.appendChild(r1);
+  xbar.appendChild(r2);
+  host.appendChild(xbar);
+}
+
+// —— 状态矩阵：11 图标 × normal/hover/active ——
+function buildMatrix(host) {
+  const m = document.createElement("div");
+  m.className = "matrix";
+  const states = [["normal", "mstate normal"], ["hover", "mstate hover"], ["active", "mstate active"]];
+  for (const [name, inner] of ICONS) {
+    const cell = document.createElement("div");
+    cell.className = "mcell";
+    for (const [sname, cls] of states) {
+      const st = document.createElement("div");
+      st.className = cls;
+      st.appendChild(makeSvg(14, "currentColor", 1.7, inner));
+      cell.appendChild(st);
+    }
+    const nm = document.createElement("div");
+    nm.className = "mname";
+    nm.textContent = name;
+    cell.appendChild(nm);
+    m.appendChild(cell);
+  }
+  // 表头
+  const head = document.createElement("div");
+  head.className = "mcell";
+  head.innerHTML = '<div class="mcol">normal</div><div class="mcol">hover</div><div class="mcol">active</div><div class="mname">&nbsp;</div>';
+  m.prepend(head);
+  host.appendChild(m);
+}
+
+function buildZoom(host) {
+  for (const [name, inner] of ICONS) {
+    const box = document.createElement("div");
+    box.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:8px;";
+    box.appendChild(makeSvg(42, "#C7CDD8", 5.1, inner));
+    const nm = document.createElement("div");
+    nm.style.cssText = "font-size:11px;opacity:.55;";
+    nm.textContent = name;
+    box.appendChild(nm);
+    host.appendChild(box);
+  }
+}
+
+buildLive(document.getElementById("live"));
+buildMatrix(document.getElementById("matrix"));
+buildZoom(document.getElementById("zoomrow"));
+</script>
+</body>
+</html>

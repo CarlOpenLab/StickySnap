@@ -1,0 +1,4 @@
+// StickySnap resources (ASCII only)
+1 ICON "app.ico"
+201 RCDATA "toolbar.png"
+202 RCDATA "toolbar_active.png"

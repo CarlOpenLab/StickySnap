@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="zh" data-lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StickySnap — 把截图钉在桌面上 / Pin a screenshot to your desktop</title>
+<script>
+(function(){
+  var l='zh';
+  try{ l=localStorage.getItem('ss_lang')||l; }catch(e){}
+  var root=document.documentElement;
+  root.setAttribute('data-lang',l);
+  root.lang=(l==='en')?'en':'zh';
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   StickySnap landing — 暗夜工坊 (dark atelier) 定稿版
+   ============================================================ */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --w:min(1120px,calc(100% - 48px));
+  --sel-red:#FF453A;
+  --overlay:rgba(9,11,16,.52);
+  --bg:#0A0B0E; --fg:#F4F5F7; --muted:rgba(226,231,240,.64);
+  --line:rgba(255,255,255,.10); --card:#111318; --card2:#151922;
+  --accent:#FF4B3E; --accent-fg:#FFFFFF; --accent-soft:rgba(255,75,62,.13);
+  --accent-2:#38E1CF;
+  --font-display:'Space Grotesk','PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif;
+  --font-body:'Space Grotesk','PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif;
+  --font-mono:'JetBrains Mono',Consolas,monospace;
+  --radius:14px; --btn-r:10px; --scene-r:12px;
+  --kbd-bg:#161A21; --kbd-shadow:0 2px 0 rgba(0,0,0,.55);
+  --desk-a:#1D2432; --desk-b:#12161F; --dw-bg:#151A24; --dw-line:rgba(255,255,255,.09); --dw-bar:#1B212E;
+  --ok:#4ADE80;
+}
+body{
+  font-family:var(--font-body);
+  background:
+    radial-gradient(1000px 520px at 85% -10%,rgba(255,75,62,.05),transparent 60%),
+    radial-gradient(900px 600px at -10% 30%,rgba(56,225,207,.045),transparent 55%),
+    var(--bg);
+  color:var(--fg);
+  line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+::selection{background:var(--accent);color:var(--accent-fg)}
+.wrap{width:var(--w);margin-inline:auto}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;line-height:1.25}
+p{text-wrap:pretty}
+a{color:inherit}
+button{font-family:inherit}
+kbd{font-family:var(--font-mono)}
+
+/* ---------- bilingual ---------- */
+[data-lang="zh"] .en{display:none}
+[data-lang="en"] .zh{display:none}
+
+/* ---------- nav ---------- */
+.nav{
+  position:sticky;top:0;z-index:40;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  background:color-mix(in srgb,var(--bg) 80%,transparent);
+  border-bottom:1px solid var(--line);
+}
+.nav .wrap{display:flex;align-items:center;gap:16px;height:62px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-family:var(--font-display);font-weight:700;font-size:17px;letter-spacing:.2px}
+.brand-mark{width:27px;height:27px;border-radius:8px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;flex:none}
+.brand-mark svg{width:14px;height:14px}
+.nav-spacer{flex:1}
+.ver-chip{font-family:var(--font-mono);font-size:11.5px;color:#AEB4C2;border:1px solid var(--line);border-radius:999px;padding:4px 11px;white-space:nowrap}
+.nav-gh{display:flex;align-items:center;gap:7px;font-size:14px;color:var(--muted);text-decoration:none;white-space:nowrap}
+.nav-gh:hover{color:var(--fg)}
+.nav-gh svg{width:15px;height:15px}
+.lang-sw{display:flex;gap:2px;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--card);flex:none}
+.lang-sw button{font-family:var(--font-mono);font-size:12px;font-weight:600;line-height:1;padding:6px 12px;border-radius:999px;border:0;background:transparent;color:var(--muted);cursor:pointer;transition:color .15s ease,background .15s ease}
+.lang-sw button:hover{color:var(--fg)}
+.lang-sw button.on{background:var(--accent);color:var(--accent-fg)}
+
+/* ---------- sections ---------- */
+section{padding:clamp(58px,9vw,108px) 0;position:relative}
+.sec-head{margin-bottom:clamp(28px,4.5vw,52px)}
+h2{font-size:clamp(24px,3.2vw,38px);font-weight:700;letter-spacing:-.01em}
+.sec-sub{margin-top:10px;color:var(--muted);font-size:15.5px;max-width:640px}
+
+/* ---------- buttons ---------- */
+.btn-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:30px}
+.btn{display:inline-flex;align-items:center;gap:9px;font-weight:600;font-size:15px;line-height:1;padding:14px 24px;border-radius:var(--btn-r);text-decoration:none;cursor:pointer;transition:transform .15s ease,box-shadow .2s ease,background .2s ease;border:1px solid transparent}
+.btn svg{width:16px;height:16px}
+.btn-primary{background:var(--accent);color:var(--accent-fg);box-shadow:0 10px 30px rgba(255,75,62,.28)}
+.btn-primary:hover{transform:translateY(-1px)}
+.btn-ghost{border-color:var(--line);background:var(--card);color:var(--fg)}
+.btn-ghost:hover{border-color:var(--muted)}
+
+/* ---------- hero ---------- */
+.hero{padding-top:clamp(48px,7vw,92px)}
+.hero .wrap{display:grid;grid-template-columns:1fr 1.18fr;gap:clamp(28px,4.5vw,64px);align-items:center}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:12px;letter-spacing:1.2px;color:#C9CEDA;border:1px solid var(--line);border-radius:999px;padding:6px 14px}
+.eyebrow i{width:6px;height:6px;border-radius:50%;background:var(--accent);flex:none}
+h1{font-size:clamp(34px,5.4vw,64px);font-weight:700;letter-spacing:-.02em;margin-top:22px}
+.lede{margin-top:18px;font-size:clamp(15.5px,1.6vw,17.5px);color:var(--muted);max-width:560px}
+.hero-art{position:relative;margin-top:8px;min-width:0}
+.hero-art::before{content:"";position:absolute;inset:-12% -8%;background:radial-gradient(60% 55% at 60% 42%,rgba(255,75,62,.17),transparent 70%),radial-gradient(45% 45% at 25% 75%,rgba(56,225,207,.12),transparent 70%);filter:blur(6px);z-index:-1;border-radius:40px}
+
+.keys{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;margin-top:28px}
+.k{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--muted)}
+kbd{font-size:12.5px;font-weight:600;padding:5px 10px;border-radius:7px;border:1px solid var(--line);background:var(--kbd-bg);box-shadow:var(--kbd-shadow);color:var(--fg)}
+
+/* ================= scenes (product UI mockups) ================= */
+.scene{position:relative;width:100%;overflow:hidden;border-radius:var(--scene-r);isolation:isolate;background:linear-gradient(135deg,var(--desk-a),var(--desk-b) 60%);box-shadow:0 34px 90px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.06)}
+.scene::after{content:"";position:absolute;inset:0;background:radial-gradient(80% 60% at 70% 20%,rgba(255,255,255,.05),transparent 60%);pointer-events:none}
+.sel-scene{aspect-ratio:16/10.4}
+.desk{position:absolute;inset:0}
+.dw{position:absolute;border-radius:8px;background:var(--dw-bg);border:1px solid var(--dw-line);overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,.25)}
+.dw .bar{display:flex;align-items:center;gap:4px;height:15px;padding:0 8px;background:var(--dw-bar);border-bottom:1px solid var(--dw-line)}
+.dw .bar i{width:4.5px;height:4.5px;border-radius:50%;background:rgba(255,255,255,.22)}
+.dw .ln{display:block;height:5px;border-radius:3px;background:rgba(255,255,255,.08);margin:9px 10px 0}
+.dw .ln:last-child{margin-bottom:10px}
+.dw1{left:5%;top:9%;width:32%;height:54%}
+.dw2{left:43%;top:5%;width:29%;height:36%}
+.dw3{left:57%;top:52%;width:32%;height:38%}
+
+/* selection + spotlight */
+.sel{position:absolute;left:10%;top:10%;width:53%;height:52%;border:2px solid var(--sel-red);box-shadow:0 0 0 9999px var(--overlay),inset 0 0 0 1px rgba(255,255,255,.14);z-index:2}
+.sel-tag{position:absolute;left:8px;bottom:8px;font-family:var(--font-mono);font-size:11px;font-weight:600;color:#fff;background:rgba(8,10,15,.62);border:1px solid rgba(255,255,255,.16);border-radius:4px;padding:2.5px 8px;letter-spacing:.4px}
+.cross{position:absolute;left:57%;top:38%;z-index:3;width:0;height:0}
+.cross::before{content:"";position:absolute;left:-24px;top:0;width:48px;height:1px;background:rgba(255,255,255,.78)}
+.cross::after{content:"";position:absolute;top:-24px;left:0;height:48px;width:1px;background:rgba(255,255,255,.78)}
+.cross .dot{position:absolute;left:-2.5px;top:-2.5px;width:5px;height:5px;border-radius:50%;background:var(--sel-red);box-shadow:0 0 0 2px rgba(255,255,255,.85)}
+
+/* magnifier */
+.mag{position:absolute;left:59%;top:40%;z-index:4;width:clamp(74px,10%,108px);aspect-ratio:1;padding:3px;background:#0B0D12;border:2px solid #fff;border-radius:6px;box-shadow:0 14px 34px rgba(0,0,0,.5);display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:0}
+.mag i{display:block}
+.mag i:nth-child(1){background:#1B2F5E}.mag i:nth-child(2){background:#22407C}.mag i:nth-child(3){background:#2B53A0}
+.mag i:nth-child(4){background:#3A5F9E}.mag i:nth-child(5){background:#2F6FED}.mag i:nth-child(6){background:#274A86}
+.mag i:nth-child(7){background:#1E3A6E}.mag i:nth-child(8){background:#16305E}.mag i:nth-child(9){background:#24427A}
+.mag-hex{position:absolute;left:59%;top:56.5%;z-index:4;font-family:var(--font-mono);font-size:10.5px;font-weight:600;letter-spacing:.6px;color:#fff;background:rgba(8,10,15,.62);border:1px solid rgba(255,255,255,.16);border-radius:4px;padding:2.5px 8px}
+
+/* toolbar strip */
+.xbar{position:absolute;left:10%;top:calc(62% + 8px);z-index:5;display:flex;flex-direction:column;gap:5px}
+.xrow{display:flex;align-items:center;gap:3px;padding:4.5px;background:#161A22;border:1px solid rgba(255,255,255,.09);border-radius:9px;box-shadow:0 12px 32px rgba(0,0,0,.4);width:max-content}
+.xbtn{width:26px;height:26px;border-radius:6px;display:grid;place-items:center;color:#C7CDD8;border:1px solid transparent;flex:none}
+.xbtn svg{width:14px;height:14px}
+.xbtn.on{background:var(--accent);color:#fff}
+.xsep{width:1px;align-self:stretch;background:rgba(255,255,255,.12);margin:2px 4px}
+.cdot{width:13px;height:13px;border-radius:50%;flex:none;margin:0 2.5px}
+.cdot.on{outline:2px solid #fff;outline-offset:1.5px}
+.wdot{border-radius:50%;background:#C7CDD8;flex:none;margin:0 3.5px}
+.wdot.on{outline:2px solid #fff;outline-offset:1.5px}
+
+/* pin scene */
+.pin-scene{aspect-ratio:16/10.4}
+.pin-card{position:absolute;left:14%;top:18%;width:38%;aspect-ratio:16/10;background:#0F1420;border:1px solid rgba(255,255,255,.13);border-radius:10px;box-shadow:0 26px 64px rgba(0,0,0,.5);transform:rotate(-1.4deg);overflow:visible;z-index:2}
+.pin-shot{position:absolute;inset:0;border-radius:10px;overflow:hidden;background:linear-gradient(160deg,#121826,#0C101B)}
+.pe-bar{display:flex;align-items:center;gap:4px;height:20px;padding:0 9px;background:rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.08)}
+.pe-bar i{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.25)}
+.pe-bar span{margin-left:6px;font-family:var(--font-mono);font-size:9px;letter-spacing:.5px;color:rgba(255,255,255,.5)}
+.pe-line{height:5px;border-radius:3px;background:rgba(122,162,247,.38);margin:10px 12px 0}
+.pe-line.g{background:rgba(80,200,160,.35)}
+.pe-line.m{background:rgba(255,255,255,.12)}
+.pin-badge{position:absolute;top:-11px;right:-11px;width:27px;height:27px;border-radius:50%;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;box-shadow:0 6px 16px rgba(0,0,0,.4);z-index:3}
+.pin-badge svg{width:13px;height:13px}
+.pin-menu{position:absolute;left:58%;top:30%;z-index:3;background:#151923;border:1px solid rgba(255,255,255,.11);border-radius:10px;padding:6px;min-width:158px;box-shadow:0 20px 48px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:1px}
+.mi{font-size:12.5px;line-height:1.5;color:#E8EBF1;padding:7px 11px;border-radius:6px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.mi .mk{font-family:var(--font-mono);font-size:10.5px;color:#8A92A3}
+.mi.hot{background:rgba(255,255,255,.07)}
+.mi svg{width:12px;height:12px;color:var(--accent-2);flex:none}
+.pin-hint{position:absolute;right:5.5%;bottom:7%;z-index:3;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.4px;color:#B7BFCB;background:rgba(9,11,16,.55);border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:5px 11px}
+
+/* toolbar closeup scene */
+.tb-scene{aspect-ratio:21/9}
+.tb-big{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;display:flex;flex-direction:column;gap:7px}
+.tb-big .xbtn{width:34px;height:34px;border-radius:8px}
+.tb-big .xbtn svg{width:18px;height:18px}
+.tb-big .cdot{width:15px;height:15px}
+.tb-big .xrow{padding:7px;border-radius:11px}
+
+/* ---------- core loop ---------- */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(16px,2.5vw,28px)}
+.step{display:flex;flex-direction:column;align-items:flex-start;gap:12px;padding:24px;border-radius:var(--radius);border:1px solid var(--line);background:var(--card)}
+.step kbd{font-size:15px;padding:8px 14px;border-radius:9px}
+.step h3{font-size:16.5px;font-weight:700}
+.step p{font-size:14.5px;color:var(--muted)}
+
+/* ---------- ui breakdown ---------- */
+.ui-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(20px,3vw,36px)}
+.ui-grid figure{display:flex;flex-direction:column;gap:14px;min-width:0}
+figcaption{font-size:14px;color:var(--muted);line-height:1.6}
+
+/* ---------- features ---------- */
+.features ul{list-style:none;display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(16px,2.5vw,28px)}
+.features li{display:flex;flex-direction:column;align-items:flex-start;gap:11px;padding:24px;border-radius:var(--radius);border:1px solid var(--line);background:var(--card)}
+.f-ic{width:38px;height:38px;border-radius:11px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:none}
+.f-ic svg{width:19px;height:19px}
+.features h3{font-size:16.5px;font-weight:700}
+.features p{font-size:14.5px;color:var(--muted)}
+
+/* ---------- roadmap ---------- */
+.roadmap ol{list-style:none;display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(16px,2.5vw,28px)}
+.road{display:flex;flex-direction:column;align-items:flex-start;gap:12px;padding:24px;border-radius:var(--radius);border:1px solid var(--line);background:var(--card)}
+.st{font-family:var(--font-mono);font-size:10.5px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;padding:4px 10px;border-radius:999px;width:max-content}
+.r-done .st{color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,transparent);border:1px solid color-mix(in srgb,var(--ok) 32%,transparent)}
+.r-now .st{color:var(--accent);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 32%,transparent)}
+.r-next .st{color:var(--muted);border:1px solid var(--line);background:transparent}
+.road h3{font-size:16.5px;font-weight:700}
+.road ul{list-style:none;display:flex;flex-direction:column;gap:7px;font-size:14px;color:var(--muted)}
+.road li{display:flex;gap:9px;align-items:baseline}
+.road li::before{content:"–";color:var(--accent);flex:none;opacity:.8}
+
+/* ---------- footer ---------- */
+.footer{border-top:1px solid var(--line);padding:40px 0 44px;background:rgba(255,255,255,.02)}
+.footer .row{display:flex;flex-wrap:wrap;align-items:center;gap:14px 30px}
+.footer .brandline{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:700;font-size:15.5px}
+.footer .tag{color:var(--muted);font-size:14px}
+.footer nav{display:flex;gap:6px 22px;flex-wrap:wrap;margin-left:auto}
+.footer nav a{display:inline-flex;align-items:center;gap:7px;font-size:14px;color:var(--muted);text-decoration:none}
+.footer nav a:hover{color:var(--fg)}
+.footer nav a svg{width:14px;height:14px}
+.smallprint{margin-top:22px;font-family:var(--font-mono);font-size:11.5px;letter-spacing:.4px;color:var(--muted)}
+
+/* ---------- motion ---------- */
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.hero-copy>*{animation:rise .7s cubic-bezier(.2,.7,.2,1) both}
+.hero-copy>*:nth-child(2){animation-delay:.08s}
+.hero-copy>*:nth-child(3){animation-delay:.16s}
+.hero-copy>*:nth-child(4){animation-delay:.24s}
+.hero-copy>*:nth-child(5){animation-delay:.3s}
+.hero-art{animation:rise .8s .2s cubic-bezier(.2,.7,.2,1) both}
+@keyframes bob{from{transform:rotate(-1.4deg) translateY(-3px)}to{transform:rotate(-1.4deg) translateY(3px)}}
+.pin-card{animation:bob 5s ease-in-out infinite alternate}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+
+/* ---------- responsive ---------- */
+@media (max-width:980px){
+  .hero .wrap{grid-template-columns:1fr;gap:34px}
+  .ui-grid{grid-template-columns:1fr}
+  .features ul{grid-template-columns:repeat(2,1fr)}
+  .roadmap ol{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:700px){
+  :root{--w:calc(100% - 36px)}
+  .steps{grid-template-columns:1fr}
+  .features ul{grid-template-columns:1fr}
+  .roadmap ol{grid-template-columns:1fr}
+  .xbtn{width:23px;height:23px}
+  .xbtn svg{width:13px;height:13px}
+  .xrow{padding:4px;border-radius:8px}
+  .xbar{transform-origin:0 0;transform:scale(.92)}
+  .footer nav{margin-left:0}
+}
+@media (max-width:480px){
+  .ver-chip{display:none}
+  .sel-tag{font-size:10px}
+  .pin-menu{min-width:136px}
+  .mi{font-size:11.5px;padding:6px 9px}
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ================= NAV ================= -->
+  <header class="nav">
+    <div class="wrap">
+      <a class="brand" href="#top" aria-label="StickySnap">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3.5h5l-.7 4.2 2.7 3.3H7.5l2.7-3.3L9.5 3.5Z"></path><path d="M12 11v9"></path></svg>
+        </span>
+        StickySnap
+      </a>
+      <span class="nav-spacer"></span>
+      <span class="ver-chip"><span class="bi"><span class="zh">v0.1 · M0 · Windows</span><span class="en">v0.1 · M0 · Windows</span></span></span>
+      <a class="nav-gh" href="#" title="占位链接:替换为 GitHub 仓库地址">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m8 8-4 4 4 4"></path><path d="m16 8 4 4-4 4"></path></svg>
+        GitHub
+      </a>
+      <div class="lang-sw" role="group" aria-label="语言 / language">
+        <button data-setlang="zh" title="中文">中</button>
+        <button data-setlang="en" title="English">EN</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+
+    <!-- ================= HERO ================= -->
+    <section class="hero" data-screen-label="hero">
+      <div class="wrap">
+        <div class="hero-copy">
+          <span class="eyebrow"><i aria-hidden="true"></i><span class="bi"><span class="zh">Windows 原生 · 免费无广告 · 纯本地</span><span class="en">NATIVE ON WINDOWS · FREE · LOCAL-FIRST</span></span></span>
+          <h1><span class="bi"><span class="zh">把截图<br>钉在桌面上。</span><span class="en">Pin a screenshot<br>to your desktop.</span></span></h1>
+          <p class="lede"><span class="bi"><span class="zh">F1 框住屏幕,窗口自动吸附;Enter 一键贴上桌面;F3 随时把剪贴板贴出来。贴图常驻——重启电脑也还在。</span><span class="en">Press F1 to frame the screen — windows snap under your cursor. Enter pins the shot to your desktop. F3 pins whatever is on your clipboard. Pins stay put, even after a reboot.</span></span></p>
+          <div class="btn-row">
+            <a class="btn btn-primary" href="#" title="占位链接:替换为 GitHub 仓库地址">
+              <span class="bi"><span class="zh">在 GitHub 上了解它</span><span class="en">Explore on GitHub</span></span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
+            </a>
+            <a class="btn btn-ghost" href="#" title="占位链接:替换为下载地址">
+              <span class="bi"><span class="zh">下载 M0 体验版</span><span class="en">Download the M0 preview</span></span>
+            </a>
+          </div>
+          <div class="keys" aria-label="快捷键">
+            <span class="k"><kbd>F1</kbd><span class="bi"><span class="zh">截图</span><span class="en">capture</span></span></span>
+            <span class="k"><kbd>Enter</kbd><span class="bi"><span class="zh">贴图</span><span class="en">pin</span></span></span>
+            <span class="k"><kbd>F3</kbd><span class="bi"><span class="zh">贴剪贴板</span><span class="en">pin clipboard</span></span></span>
+            <span class="k"><kbd>Ctrl+C</kbd><span class="bi"><span class="zh">复制</span><span class="en">copy</span></span></span>
+          </div>
+        </div>
+
+        <div class="hero-art">
+          <!-- 模拟界面:冻结遮罩 + 选区 + 放大镜 + 工具栏 -->
+          <div class="scene sel-scene" role="img" aria-label="StickySnap 截图选区界面演示 / StickySnap selection UI demo">
+            <div class="desk" aria-hidden="true">
+              <div class="dw dw1"><span class="bar"><i></i><i></i><i></i></span><span class="ln" style="width:76%"></span><span class="ln" style="width:62%"></span><span class="ln" style="width:70%"></span><span class="ln" style="width:44%"></span></div>
+              <div class="dw dw2"><span class="bar"><i></i><i></i><i></i></span><span class="ln" style="width:58%"></span><span class="ln" style="width:72%"></span></div>
+              <div class="dw dw3"><span class="bar"><i></i><i></i><i></i></span><span class="ln" style="width:64%"></span><span class="ln" style="width:48%"></span></div>
+            </div>
+            <div class="sel"><span class="sel-tag">640 × 400 px</span></div>
+            <div class="cross" aria-hidden="true"><span class="dot"></span></div>
+            <div class="mag" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <span class="mag-hex" aria-hidden="true">#2F6FED</span>
+            <div class="xbar" aria-hidden="true">
+              <div class="xrow">
+                <span class="xbtn" title="矩形"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="6.5" width="16" height="11" rx="1"></rect></svg></span>
+                <span class="xbtn" title="椭圆"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><ellipse cx="12" cy="12" rx="8" ry="5.5"></ellipse></svg></span>
+                <span class="xbtn on" title="箭头"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18 L18 6"></path><path d="M12.5 6 H18 V11.5"></path></svg></span>
+                <span class="xbtn" title="画笔"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 6.5 l4 4"></path><path d="M4 20 l1.2-4.6 10.8-10.8 a2 2 0 0 1 2.8 0 l1.6 1.6 a2 2 0 0 1 0 2.8 L9.6 19.8 4 20 Z"></path></svg></span>
+                <span class="xbtn" title="荧光笔"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h7"></path><path d="M8 16l7.5-11 3.4 2.3L11.4 18l-4.6.9L8 16Z"></path></svg></span>
+                <span class="xbtn" title="马赛克"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 4h7v7H4z"></path><path d="M13 4h7v7h-7z"></path><path d="M4 13h7v7H4z"></path><path d="M13 13h7v7h-7z"></path></svg></span>
+                <span class="xsep"></span>
+                <span class="xbtn" title="撤销"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 5 3.5 8.5 7.5 12"></path><path d="M4 8.5 H15 a5.5 5.5 0 0 1 0 11 H8"></path></svg></span>
+                <span class="xsep"></span>
+                <span class="xbtn on" title="贴图"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3.5h5l-.7 4.2 2.7 3.3H7.5l2.7-3.3L9.5 3.5Z"></path><path d="M12 11v9"></path></svg></span>
+                <span class="xbtn" title="复制"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg></span>
+                <span class="xbtn" title="保存"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13H5z"></path><path d="M8 4v5h7V4"></path><path d="M8 20v-6h8v6"></path></svg></span>
+                <span class="xbtn" title="取消"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></span>
+              </div>
+              <div class="xrow">
+                <span class="cdot" style="background:#E5484D"></span>
+                <span class="cdot" style="background:#FF8D3A"></span>
+                <span class="cdot" style="background:#F7C948"></span>
+                <span class="cdot" style="background:#46A758"></span>
+                <span class="cdot on" style="background:#2F6FED"></span>
+                <span class="cdot" style="background:#7A5AF8"></span>
+                <span class="cdot" style="background:#E36BAA"></span>
+                <span class="cdot" style="background:#0EA5A5"></span>
+                <span class="cdot" style="background:#F2F2F2"></span>
+                <span class="xsep"></span>
+                <span class="wdot" style="width:5px;height:5px"></span>
+                <span class="wdot on" style="width:8px;height:8px"></span>
+                <span class="wdot" style="width:12px;height:12px"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= CORE LOOP ================= -->
+    <section class="loop" data-screen-label="core-loop">
+      <div class="wrap">
+        <div class="sec-head">
+          <h2><span class="bi"><span class="zh">核心循环,三步。</span><span class="en">The core loop, in three keystrokes.</span></span></h2>
+          <p class="sec-sub"><span class="bi"><span class="zh">不跳编辑器、不弹对话框——从想法到「留在桌面上」,只按三次键。</span><span class="en">No editor hop, no dialogs — from thought to "on the desktop" in three keystrokes.</span></span></p>
+        </div>
+        <div class="steps">
+          <div class="step">
+            <kbd>F1</kbd>
+            <h3><span class="bi"><span class="zh">截图</span><span class="en">Capture</span></span></h3>
+            <p><span class="bi"><span class="zh">全屏冻结,光标下的窗口自动高亮。单击选中,或拖拽框选;放大镜取色,方向键微调。</span><span class="en">The screen freezes; the window under your cursor lights up. Click to grab it or drag a frame. Magnifier to pick a color, arrow keys to nudge.</span></span></p>
+          </div>
+          <div class="step">
+            <kbd>Enter</kbd>
+            <h3><span class="bi"><span class="zh">贴上</span><span class="en">Pin</span></span></h3>
+            <p><span class="bi"><span class="zh">截图直接钉上桌面:置顶悬浮,滚轮缩放,Ctrl+滚轮调透明度,不挡工作流。</span><span class="en">The shot is pinned on top of your desktop — scroll to zoom, Ctrl+scroll for opacity. Present, never in the way.</span></span></p>
+          </div>
+          <div class="step">
+            <kbd>F3</kbd>
+            <h3><span class="bi"><span class="zh">随取</span><span class="en">Retrieve</span></span></h3>
+            <p><span class="bi"><span class="zh">剪贴板里的任何图片,F3 一下变成桌面贴图;重启电脑,贴图自动恢复原位。</span><span class="en">Any image on your clipboard becomes a desktop pin, instantly. Reboot, and every pin returns exactly where you left it.</span></span></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PRODUCT UI ================= -->
+    <section class="ui" data-screen-label="product-ui">
+      <div class="wrap">
+        <div class="sec-head">
+          <h2><span class="bi"><span class="zh">看得见的细节。</span><span class="en">The details, up close.</span></span></h2>
+          <p class="sec-sub"><span class="bi"><span class="zh">贴图和标注不是附加功能,是产品本身——每一处都按「天天用」打磨。</span><span class="en">Pins and annotations are not add-ons here — they are the product, polished for daily use.</span></span></p>
+        </div>
+        <div class="ui-grid">
+          <figure>
+            <div class="scene pin-scene" role="img" aria-label="StickySnap 贴图窗与右键菜单演示 / StickySnap pin window and context menu demo">
+              <div class="desk" aria-hidden="true">
+                <div class="dw dw1"><span class="bar"><i></i><i></i><i></i></span><span class="ln" style="width:70%"></span><span class="ln" style="width:52%"></span></div>
+                <div class="dw dw2"><span class="bar"><i></i><i></i><i></i></span><span class="ln" style="width:64%"></span></div>
+                <div class="dw dw3"><span class="bar"><i></i><i></i><i></i></span><span class="ln" style="width:58%"></span><span class="ln" style="width:70%"></span></div>
+              </div>
+              <div class="pin-card">
+                <div class="pin-shot" aria-hidden="true">
+                  <div class="pe-bar"><i></i><i></i><i></i><span>app.cpp</span></div>
+                  <div class="pe-line" style="width:64%"></div>
+                  <div class="pe-line m" style="width:82%"></div>
+                  <div class="pe-line g" style="width:52%"></div>
+                  <div class="pe-line m" style="width:70%"></div>
+                  <div class="pe-line" style="width:44%"></div>
+                  <div class="pe-line m" style="width:76%"></div>
+                </div>
+                <span class="pin-badge" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3.5h5l-.7 4.2 2.7 3.3H7.5l2.7-3.3L9.5 3.5Z"></path><path d="M12 11v9"></path></svg>
+                </span>
+              </div>
+              <div class="pin-menu" aria-hidden="true">
+                <span class="mi hot"><span class="bi"><span class="zh">鼠标穿透</span><span class="en">Click-through</span></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+                <span class="mi"><span class="bi"><span class="zh">复制</span><span class="en">Copy</span></span><span class="mk">Ctrl+C</span></span>
+                <span class="mi"><span class="bi"><span class="zh">另存为…</span><span class="en">Save as…</span></span></span>
+                <span class="mi"><span class="bi"><span class="zh">关闭</span><span class="en">Close</span></span><span class="mk">×2</span></span>
+              </div>
+              <span class="pin-hint"><span class="bi"><span class="zh">CTRL+滚轮 · 透明度 80%</span><span class="en">CTRL+SCROLL · OPACITY 80%</span></span></span>
+            </div>
+            <figcaption><span class="bi"><span class="zh">贴图窗:右键穿透、滚轮缩放、Ctrl+滚轮调透明度;双击关闭,重启自动恢复。</span><span class="en">The pin window: right-click for click-through, scroll to zoom, Ctrl+scroll for opacity. Double-click to close; restored after reboot.</span></span></figcaption>
+          </figure>
+
+          <figure>
+            <div class="scene tb-scene" role="img" aria-label="StickySnap 标注工具栏特写演示 / StickySnap annotation toolbar close-up demo">
+              <div class="desk" aria-hidden="true">
+                <div class="dw dw1"><span class="bar"><i></i><i></i><i></i></span><span class="ln" style="width:72%"></span><span class="ln" style="width:56%"></span></div>
+                <div class="dw dw3"><span class="bar"><i></i><i></i><i></i></span><span class="ln" style="width:62%"></span><span class="ln" style="width:46%"></span></div>
+              </div>
+              <div class="tb-big" aria-hidden="true">
+                <div class="xrow">
+                  <span class="xbtn" title="矩形"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="6.5" width="16" height="11" rx="1"></rect></svg></span>
+                  <span class="xbtn" title="椭圆"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><ellipse cx="12" cy="12" rx="8" ry="5.5"></ellipse></svg></span>
+                  <span class="xbtn on" title="箭头"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18 L18 6"></path><path d="M12.5 6 H18 V11.5"></path></svg></span>
+                  <span class="xbtn" title="画笔"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 6.5 l4 4"></path><path d="M4 20 l1.2-4.6 10.8-10.8 a2 2 0 0 1 2.8 0 l1.6 1.6 a2 2 0 0 1 0 2.8 L9.6 19.8 4 20 Z"></path></svg></span>
+                  <span class="xbtn" title="荧光笔"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h7"></path><path d="M8 16l7.5-11 3.4 2.3L11.4 18l-4.6.9L8 16Z"></path></svg></span>
+                  <span class="xbtn" title="马赛克"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 4h7v7H4z"></path><path d="M13 4h7v7h-7z"></path><path d="M4 13h7v7H4z"></path><path d="M13 13h7v7h-7z"></path></svg></span>
+                  <span class="xsep"></span>
+                  <span class="xbtn" title="撤销"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 5 3.5 8.5 7.5 12"></path><path d="M4 8.5 H15 a5.5 5.5 0 0 1 0 11 H8"></path></svg></span>
+                  <span class="xsep"></span>
+                  <span class="xbtn" title="贴图"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3.5h5l-.7 4.2 2.7 3.3H7.5l2.7-3.3L9.5 3.5Z"></path><path d="M12 11v9"></path></svg></span>
+                  <span class="xbtn" title="复制"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg></span>
+                  <span class="xbtn" title="保存"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13H5z"></path><path d="M8 4v5h7V4"></path><path d="M8 20v-6h8v6"></path></svg></span>
+                  <span class="xbtn" title="取消"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></span>
+                </div>
+                <div class="xrow">
+                  <span class="cdot" style="background:#E5484D"></span>
+                  <span class="cdot" style="background:#FF8D3A"></span>
+                  <span class="cdot on" style="background:#F7C948"></span>
+                  <span class="cdot" style="background:#46A758"></span>
+                  <span class="cdot" style="background:#2F6FED"></span>
+                  <span class="cdot" style="background:#7A5AF8"></span>
+                  <span class="cdot" style="background:#E36BAA"></span>
+                  <span class="cdot" style="background:#0EA5A5"></span>
+                  <span class="cdot" style="background:#F2F2F2"></span>
+                  <span class="xsep"></span>
+                  <span class="wdot" style="width:5px;height:5px"></span>
+                  <span class="wdot" style="width:8px;height:8px"></span>
+                  <span class="wdot on" style="width:12px;height:12px"></span>
+                </div>
+              </div>
+            </div>
+            <figcaption><span class="bi"><span class="zh">标注工具栏:截完即标,不跳编辑器;矩形、椭圆、箭头、画笔、荧光笔、马赛克,随时 Ctrl+Z。</span><span class="en">The annotation toolbar: mark up on the spot — rectangle, ellipse, arrow, pen, highlighter, mosaic. Ctrl+Z always works.</span></span></figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= FEATURES ================= -->
+    <section class="features" data-screen-label="features">
+      <div class="wrap">
+        <div class="sec-head">
+          <h2><span class="bi"><span class="zh">它凭什么常驻托盘?</span><span class="en">Why it earns a spot in your tray.</span></span></h2>
+          <p class="sec-sub"><span class="bi"><span class="zh">M0 版本已经做到的,不是承诺——是现在就能按出来的手感。</span><span class="en">This is what M0 already does — not promises, but keystrokes you can press today.</span></span></p>
+        </div>
+        <ul>
+          <li>
+            <span class="f-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 0 1 1-1h3"></path><path d="M16 4h3a1 1 0 0 1 1 1v3"></path><path d="M20 16v3a1 1 0 0 1-1 1h-3"></path><path d="M8 20H5a1 1 0 0 1-1-1v-3"></path><circle cx="12" cy="12" r="3"></circle></svg></span>
+            <h3><span class="bi"><span class="zh">窗口智能吸附</span><span class="en">Snap to windows</span></span></h3>
+            <p><span class="bi"><span class="zh">光标掠过,窗口自动高亮;自动跳过贴图、桌面和隐身窗口,单击即选中。</span><span class="en">The window under your cursor highlights as you move — pins, the desktop and hidden windows are skipped. One click selects it.</span></span></p>
+          </li>
+          <li>
+            <span class="f-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"></circle><path d="M15.5 15.5 20 20"></path><path d="M11 8v6"></path><path d="M8 11h6"></path></svg></span>
+            <h3><span class="bi"><span class="zh">像素级手感</span><span class="en">Pixel-precise feel</span></span></h3>
+            <p><span class="bi"><span class="zh">9×9 放大镜、#RRGGBB 取色、实时尺寸提示、方向键微调——精确到像素。</span><span class="en">A 9×9 magnifier, #RRGGBB readout, live size label, arrow-key nudging — precise down to the pixel.</span></span></p>
+          </li>
+          <li>
+            <span class="f-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 6.5 l4 4"></path><path d="M4 20 l1.2-4.6 10.8-10.8 a2 2 0 0 1 2.8 0 l1.6 1.6 a2 2 0 0 1 0 2.8 L9.6 19.8 4 20 Z"></path></svg></span>
+            <h3><span class="bi"><span class="zh">一步式标注</span><span class="en">Annotate in place</span></span></h3>
+            <p><span class="bi"><span class="zh">矩形、椭圆、箭头、画笔、荧光笔、马赛克;9 色 3 粗细,Ctrl+Z 随时反悔。</span><span class="en">Rectangle, ellipse, arrow, pen, highlighter, mosaic — 9 colors, 3 widths, and Ctrl+Z to take it all back.</span></span></p>
+          </li>
+          <li>
+            <span class="f-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3.5h5l-.7 4.2 2.7 3.3H7.5l2.7-3.3L9.5 3.5Z"></path><path d="M12 11v9"></path></svg></span>
+            <h3><span class="bi"><span class="zh">贴图常驻</span><span class="en">Pins persist</span></span></h3>
+            <p><span class="bi"><span class="zh">置顶悬浮、滚轮缩放、鼠标穿透;会话落盘,重启电脑自动恢复原位。</span><span class="en">Always on top, scroll to zoom, click-through mode. The session is saved to disk — pins return after a reboot.</span></span></p>
+          </li>
+          <li>
+            <span class="f-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="11.5" rx="1.5"></rect><path d="M9.5 20h5"></path><path d="M12 16.5V20"></path></svg></span>
+            <h3><span class="bi"><span class="zh">多屏 HiDPI</span><span class="en">Multi-monitor, HiDPI</span></span></h3>
+            <p><span class="bi"><span class="zh">全程物理像素:多显示器拼接、混合缩放、跨屏选区,坐标都准确。</span><span class="en">Physical pixels all the way down — correct across multi-monitor stitching, mixed scaling and cross-screen selections.</span></span></p>
+          </li>
+          <li>
+            <span class="f-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 5 6v5.5c0 4.3 2.9 7.4 7 9 4.1-1.6 7-4.7 7-9V6l-7-2.5Z"></path><path d="M9 12l2.2 2.2L15.5 9.5"></path></svg></span>
+            <h3><span class="bi"><span class="zh">纯本地运行</span><span class="en">Local-only</span></span></h3>
+            <p><span class="bi"><span class="zh">无网络请求、无上传、无遥测;贴图也不会出现在下一次截图里。</span><span class="en">No network requests, no uploads, no telemetry — and pins never appear in your next screenshot.</span></span></p>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ================= ROADMAP ================= -->
+    <section class="roadmap" data-screen-label="roadmap">
+      <div class="wrap">
+        <div class="sec-head">
+          <h2><span class="bi"><span class="zh">路线图,摆在明面上。</span><span class="en">The roadmap, in the open.</span></span></h2>
+          <p class="sec-sub"><span class="bi"><span class="zh">贴图先立住,再谈别的。每个里程碑只做一件事,做完再走下一步。</span><span class="en">Pins come first, everything else after. One milestone, one focus — ship, then move on.</span></span></p>
+        </div>
+        <ol>
+          <li class="road r-done">
+            <span class="st"><span class="bi"><span class="zh">M0 · 已完成</span><span class="en">M0 · Done</span></span></span>
+            <h3><span class="bi"><span class="zh">贴图成立的最小集</span><span class="en">The minimum viable pin</span></span></h3>
+            <ul>
+              <li><span class="bi"><span class="zh">贴图核心循环:F1 → Enter → F3</span><span class="en">The pin loop: F1 → Enter → F3</span></span></li>
+              <li><span class="bi"><span class="zh">窗口吸附、放大镜取色、尺寸提示</span><span class="en">Window snapping, magnifier, size hints</span></span></li>
+              <li><span class="bi"><span class="zh">六种标注工具 + 会话恢复</span><span class="en">Six annotation tools + session restore</span></span></li>
+            </ul>
+          </li>
+          <li class="road r-now">
+            <span class="st"><span class="bi"><span class="zh">M1 · 进行中</span><span class="en">M1 · In progress</span></span></span>
+            <h3><span class="bi"><span class="zh">贴图,更好用</span><span class="en">Better pins</span></span></h3>
+            <ul>
+              <li><span class="bi"><span class="zh">贴图上直接标注、二次编辑</span><span class="en">Annotate and re-edit directly on pins</span></span></li>
+              <li><span class="bi"><span class="zh">GIF / APNG 动图贴图</span><span class="en">GIF / APNG animated pins</span></span></li>
+              <li><span class="bi"><span class="zh">UI 元素级吸附(UI Automation)</span><span class="en">Element-level snapping (UI Automation)</span></span></li>
+              <li><span class="bi"><span class="zh">本地 OCR(Windows.Media.Ocr)</span><span class="en">Local OCR (Windows.Media.Ocr)</span></span></li>
+            </ul>
+          </li>
+          <li class="road r-next">
+            <span class="st"><span class="bi"><span class="zh">M2 · 规划</span><span class="en">M2 · Planned</span></span></span>
+            <h3><span class="bi"><span class="zh">更聪明的桌面</span><span class="en">A smarter desktop</span></span></h3>
+            <ul>
+              <li><span class="bi"><span class="zh">虚拟桌面绑定、Solo 模式、批量操作</span><span class="en">Virtual-desktop binding, Solo mode, batch actions</span></span></li>
+              <li><span class="bi"><span class="zh">AI:本地优先、无感集成、BYOK 可选</span><span class="en">AI: local-first, invisible, optional BYOK</span></span></li>
+              <li><span class="bi"><span class="zh">跨平台:macOS / Linux</span><span class="en">Cross-platform: macOS / Linux</span></span></li>
+            </ul>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="footer">
+    <div class="wrap">
+      <div class="row">
+        <span class="brandline">
+          <span class="brand-mark" aria-hidden="true" style="width:24px;height:24px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3.5h5l-.7 4.2 2.7 3.3H7.5l2.7-3.3L9.5 3.5Z"></path><path d="M12 11v9"></path></svg>
+          </span>
+          StickySnap
+        </span>
+        <span class="tag"><span class="bi"><span class="zh">为「贴图」而生的 Windows 截图工具。</span><span class="en">A Windows screenshot tool built around pins.</span></span></span>
+        <nav aria-label="页脚导航">
+          <a href="#" title="占位链接:替换为 GitHub 仓库地址">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m8 8-4 4 4 4"></path><path d="m16 8 4 4-4 4"></path></svg>
+            GitHub
+          </a>
+          <a href="#" title="占位链接:替换为 issue/反馈地址">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H12l-4.5 4v-4h-1a2 2 0 0 1-2-2Z"></path></svg>
+            <span class="bi"><span class="zh">问题反馈</span><span class="en">Feedback</span></span>
+          </a>
+          <a href="#" title="占位链接:替换为路线图地址">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v4"></path><path d="M12 16v4"></path><path d="M4 12h4"></path><path d="M16 12h4"></path><circle cx="12" cy="12" r="1.6"></circle></svg>
+            <span class="bi"><span class="zh">完整路线图</span><span class="en">Full roadmap</span></span>
+          </a>
+        </nav>
+      </div>
+      <p class="smallprint"><span class="bi"><span class="zh">WINDOWS 10/11 X64 · V0.1(M0)· 免费使用 · 功能以实际发布为准</span><span class="en">WINDOWS 10/11 X64 · V0.1 (M0) · FREE · FEATURES SHIP AS THEY'RE READY</span></span></p>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  var root=document.documentElement;
+  function setLang(l){
+    root.setAttribute('data-lang',l);
+    root.lang=(l==='en')?'en':'zh';
+    try{localStorage.setItem('ss_lang',l);}catch(e){}
+    var bs=document.querySelectorAll('.lang-sw [data-setlang]');
+    for(var i=0;i<bs.length;i++){bs[i].classList.toggle('on',bs[i].getAttribute('data-setlang')===l);}
+  }
+  var ls=document.querySelectorAll('.lang-sw [data-setlang]');
+  for(var j=0;j<ls.length;j++){
+    ls[j].addEventListener('click',function(){setLang(this.getAttribute('data-setlang'));});
+  }
+  setLang(root.getAttribute('data-lang')||'zh');
+})();
+</script>
+
+</body>
+</html>

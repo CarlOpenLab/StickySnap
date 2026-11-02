@@ -1,0 +1,35 @@
+# StickySnap CI —— Windows 构建（macOS/Linux 工作流后续按平台进度添加）
+name: windows-build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure (MSVC)
+        run: cmake -S . -B build
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Package
+        shell: pwsh
+        run: Compress-Archive -Path build/Release/StickySnap.exe -DestinationPath StickySnap-windows-x64.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: StickySnap-windows-x64
+          path: StickySnap-windows-x64.zip
+
+# 后续：
+#   1. Inno Setup / WiX 打 Windows 安装包
+#   2. macOS job：macos-latest + Xcode（Swift/AppKit 版）
+#   3. Linux job：AppImage / deb
