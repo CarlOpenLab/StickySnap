@@ -1,4 +1,5 @@
 build/
+build-qt/
 .vs/
 *.user
 test/out/
