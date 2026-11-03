@@ -86,6 +86,9 @@ void configureOverlayWindow(QWidget* window) {
   native.hasShadow = NO;
   native.hidesOnDeactivate = NO;
   native.movable = NO;
+  // AppKit's default open animation scales/fades a new window in. On a
+  // full-screen overlay that reads as the frozen page shaking for ~200 ms.
+  native.animationBehavior = NSWindowAnimationBehaviorNone;
   [native setIgnoresMouseEvents:NO];
   [native makeKeyAndOrderFront:nil];
 }

@@ -17,7 +17,7 @@ struct Settings {
   QKeySequence hotkeyShot = QKeySequence(Qt::Key_F1);
 #endif
   QKeySequence hotkeyPin = QKeySequence(Qt::Key_F3);
-  int dimPercent = 55;
+  int dimPercent = 30;
 };
 
 // True when the sequence can be registered as a global shortcut. Function

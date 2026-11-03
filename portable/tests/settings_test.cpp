@@ -34,7 +34,7 @@ void SettingsTest::missingFileYieldsDefaults() {
   QCOMPARE(settings.hotkeyShot, QKeySequence(Qt::Key_F1));
 #endif
   QCOMPARE(settings.hotkeyPin, QKeySequence(Qt::Key_F3));
-  QCOMPARE(settings.dimPercent, 55);
+  QCOMPARE(settings.dimPercent, 30);
   QVERIFY(error.isEmpty());
 }
 
