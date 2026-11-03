@@ -1,7 +1,7 @@
 #pragma once
 
 #include <QColor>
-#include <QRect>
+#include <QRectF>
 #include <QString>
 #include <QVector>
 #include <QWidget>
@@ -48,32 +48,37 @@ class ToolbarWidget : public QWidget {
 
  private:
   enum class Kind { Tool, Color, Width, Action };
+  enum class Icon {
+    Rect,
+    Ellipse,
+    Arrow,
+    Pen,
+    Highlighter,
+    Mosaic,
+    Undo,
+    Pin,
+    Copy,
+    Save,
+    Cancel,
+  };
 
   struct Button {
-    QRect rect;
+    QRectF rect;
     Kind kind = Kind::Tool;
     int id = 0;
     QString tooltip;
   };
 
   void relayout();
-  int hitTest(const QPoint& position) const;
+  int hitTest(const QPointF& position) const;
   void paintButton(QPainter& painter, const Button& button,
                    bool hovered) const;
-  void paintToolIcon(QPainter& painter, const QRect& rect, int tool,
-                     const QColor& color) const;
-  void paintActionIcon(QPainter& painter, const QRect& rect, int action,
-                       const QColor& color) const;
-  void paintUndoIcon(QPainter& painter, const QRect& rect,
-                     const QColor& color) const;
-  void paintPinIcon(QPainter& painter, const QRect& rect,
-                    const QColor& color) const;
-  void paintCopyIcon(QPainter& painter, const QRect& rect,
-                     const QColor& color) const;
-  void paintSaveIcon(QPainter& painter, const QRect& rect,
-                     const QColor& color) const;
+  void paintIcon(QPainter& painter, const QRectF& rect, Icon icon,
+                 const QColor& color) const;
+  static Icon iconFor(Kind kind, int id);
 
   QVector<Button> buttons_;
+  QVector<QRectF> separators_;
   int activeTool_ = -1;
   int colorIndex_ = 4;
   int widthIndex_ = 1;

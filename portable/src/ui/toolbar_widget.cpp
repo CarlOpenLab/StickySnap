@@ -6,20 +6,38 @@
 #include <QStringList>
 #include <QToolTip>
 
-#include <algorithm>
-
 #include "core/annotation_style.h"
 
 namespace sticky::ui {
 namespace {
 
-constexpr int kPadding = 8;
-constexpr int kButton = 28;
-constexpr int kGap = 4;
-constexpr int kRowGap = 6;
-constexpr int kColorButton = 20;
-constexpr int kWidthButton = 24;
-constexpr int kSecondRowY = kPadding + kButton + kRowGap;
+constexpr qreal kPanelWidth = 351.0;
+constexpr qreal kColorPanelWidth = 290.0;
+constexpr qreal kRowHeight = 37.0;
+constexpr qreal kRowGap = 5.0;
+constexpr qreal kRowTwoTop = kRowHeight + kRowGap;
+constexpr qreal kToolbarWidth = kPanelWidth;
+constexpr qreal kToolbarHeight = kRowTwoTop + kRowHeight;
+
+constexpr qreal kBorder = 1.0;
+constexpr qreal kPadding = 4.5;
+constexpr qreal kButton = 26.0;
+constexpr qreal kIconSize = 14.0;
+constexpr qreal kGap = 3.0;
+constexpr qreal kColorButton = 18.0;
+constexpr qreal kWidthButton = 24.0;
+constexpr qreal kColorDot = 13.0;
+constexpr qreal kSeparatorWidth = 1.0;
+constexpr qreal kSeparatorMargin = 4.0;
+constexpr qreal kSeparatorInset = 2.0;
+constexpr qreal kPanelRadius = 9.0;
+constexpr qreal kButtonRadius = 6.0;
+
+const QColor kPanelColor(0x16, 0x1A, 0x22);
+const QColor kPanelBorder(255, 255, 255, 23);
+const QColor kSeparatorColor(255, 255, 255, 31);
+const QColor kIconColor(0xC7, 0xCD, 0xD8);
+const QColor kHoverColor(255, 255, 255, 16);
 
 }  // namespace
 
@@ -29,60 +47,84 @@ ToolbarWidget::ToolbarWidget(QWidget* parent) : QWidget(parent) {
   setMouseTracking(true);
   setFocusPolicy(Qt::NoFocus);
 
-  const int firstRowWidth = kPadding + 6 * (kButton + kGap) + 8 +
-                            5 * (kButton + kGap) - kGap + kPadding;
-  const int secondRowWidth =
-      kPadding * 2 + 9 * kColorButton + 8 * 5 + 8 + 3 * kWidthButton + 2 * 5;
-  setFixedSize(std::max(firstRowWidth, secondRowWidth), kSecondRowY +
-                                                           kWidthButton +
-                                                           kPadding);
+  setFixedSize(static_cast<int>(kToolbarWidth),
+               static_cast<int>(kToolbarHeight));
   relayout();
 }
 
 void ToolbarWidget::relayout() {
   buttons_.clear();
+  separators_.clear();
 
-  auto add = [this](const QRect& rect, Kind kind, int id,
+  auto add = [this](const QRectF& rect, Kind kind, int id,
                     const QString& tooltip) {
     buttons_.push_back(Button{rect, kind, id, tooltip});
   };
 
-  int x = kPadding;
+  const qreal contentLeft = kBorder + kPadding;
+  const qreal contentTop = kBorder + kPadding;
+  const qreal separatorTop = contentTop + kSeparatorInset;
+  const qreal separatorHeight = kButton - 2 * kSeparatorInset;
+  const auto addSeparator = [this, separatorHeight](qreal x, qreal top) {
+    separators_.push_back(QRectF(x + kSeparatorMargin, top, kSeparatorWidth,
+                                 separatorHeight));
+  };
+
   const QStringList toolNames = {
       tr("矩形"), tr("椭圆"), tr("箭头"), tr("画笔"), tr("荧光笔"), tr("马赛克")};
+  qreal x = contentLeft;
   for (int i = 0; i < 6; ++i) {
-    add(QRect(x, kPadding, kButton, kButton), Kind::Tool, i,
+    add(QRectF(x, contentTop, kButton, kButton), Kind::Tool, i,
         toolNames.value(i));
-    x += kButton + kGap;
+    x += kButton;
+    if (i < 5) x += kGap;
   }
 
-  x += 8;
-  add(QRect(x, kPadding, kButton, kButton), Kind::Action, kUndo, tr("撤销"));
-  x += kButton + kGap;
-  add(QRect(x, kPadding, kButton, kButton), Kind::Action, kPin, tr("贴图"));
-  x += kButton + kGap;
-  add(QRect(x, kPadding, kButton, kButton), Kind::Action, kCopy, tr("复制"));
-  x += kButton + kGap;
-  add(QRect(x, kPadding, kButton, kButton), Kind::Action, kSave, tr("保存"));
-  x += kButton + kGap;
-  add(QRect(x, kPadding, kButton, kButton), Kind::Action, kCancel, tr("取消"));
+  x += kGap;
+  addSeparator(x, separatorTop);
+  x += kSeparatorMargin * 2 + kSeparatorWidth + kGap;
 
-  x = kPadding;
+  add(QRectF(x, contentTop, kButton, kButton), Kind::Action, kUndo,
+      tr("撤销"));
+  x += kButton;
+
+  x += kGap;
+  addSeparator(x, separatorTop);
+  x += kSeparatorMargin * 2 + kSeparatorWidth + kGap;
+
+  const int actionIds[] = {kPin, kCopy, kSave, kCancel};
+  const QStringList actionNames = {tr("贴图"), tr("复制"), tr("保存"),
+                                   tr("取消")};
+  for (int i = 0; i < 4; ++i) {
+    add(QRectF(x, contentTop, kButton, kButton), Kind::Action, actionIds[i],
+        actionNames.value(i));
+    x += kButton;
+    if (i < 3) x += kGap;
+  }
+
+  const qreal rowTwoContentTop = kRowTwoTop + kBorder + kPadding;
+  const qreal rowTwoSeparatorTop = rowTwoContentTop + kSeparatorInset;
+  x = contentLeft;
   for (int i = 0; i < 9; ++i) {
-    add(QRect(x, kSecondRowY, kColorButton, kWidthButton), Kind::Color, i,
+    add(QRectF(x, rowTwoContentTop, kColorButton, kButton), Kind::Color, i,
         tr("颜色 %1").arg(i + 1));
-    x += kColorButton + 5;
+    x += kColorButton;
+    if (i < 8) x += kGap;
   }
 
-  x += 8;
+  x += kGap;
+  addSeparator(x, rowTwoSeparatorTop);
+  x += kSeparatorMargin * 2 + kSeparatorWidth + kGap;
+
   for (int i = 0; i < 3; ++i) {
-    add(QRect(x, kSecondRowY, kWidthButton, kWidthButton), Kind::Width, i,
+    add(QRectF(x, rowTwoContentTop, kWidthButton, kButton), Kind::Width, i,
         tr("粗细 %1").arg(i + 1));
-    x += kWidthButton + 5;
+    x += kWidthButton;
+    if (i < 2) x += kGap;
   }
 }
 
-int ToolbarWidget::hitTest(const QPoint& position) const {
+int ToolbarWidget::hitTest(const QPointF& position) const {
   for (qsizetype i = 0; i < buttons_.size(); ++i) {
     if (buttons_.at(i).rect.contains(position)) return static_cast<int>(i);
   }
@@ -107,7 +149,7 @@ void ToolbarWidget::mousePressEvent(QMouseEvent* event) {
     return;
   }
 
-  const int index = hitTest(event->pos());
+  const int index = hitTest(event->position());
   if (index < 0) {
     event->ignore();
     return;
@@ -136,7 +178,7 @@ void ToolbarWidget::mousePressEvent(QMouseEvent* event) {
 }
 
 void ToolbarWidget::mouseMoveEvent(QMouseEvent* event) {
-  const int index = hitTest(event->pos());
+  const int index = hitTest(event->position());
   if (index != hoveredButton_) {
     hoveredButton_ = index;
     update();
@@ -164,10 +206,20 @@ void ToolbarWidget::paintEvent(QPaintEvent*) {
   QPainter painter(this);
   painter.setRenderHint(QPainter::Antialiasing, true);
 
-  const QRectF background = rect().adjusted(0, 0, -1, -1);
-  painter.setPen(QPen(QColor(58, 61, 66), 1));
-  painter.setBrush(QColor(30, 31, 34, 242));
-  painter.drawRoundedRect(background, 10, 10);
+  const auto paintPanel = [&painter](const QRectF& panel) {
+    painter.setPen(QPen(kPanelBorder, 1));
+    painter.setBrush(kPanelColor);
+    painter.drawRoundedRect(panel, kPanelRadius, kPanelRadius);
+  };
+  paintPanel(QRectF(0.5, 0.5, kPanelWidth - 1.0, kRowHeight - 1.0));
+  paintPanel(QRectF(0.5, kRowTwoTop + 0.5, kColorPanelWidth - 1.0,
+                    kRowHeight - 1.0));
+
+  painter.setPen(Qt::NoPen);
+  painter.setBrush(kSeparatorColor);
+  for (const QRectF& separator : separators_) {
+    painter.drawRect(separator);
+  }
 
   for (qsizetype i = 0; i < buttons_.size(); ++i) {
     paintButton(painter, buttons_.at(i), static_cast<int>(i) == hoveredButton_);
@@ -180,179 +232,210 @@ void ToolbarWidget::paintButton(QPainter& painter, const Button& button,
       (button.kind == Kind::Tool && button.id == activeTool_) ||
       (button.kind == Kind::Color && button.id == colorIndex_) ||
       (button.kind == Kind::Width && button.id == widthIndex_);
+  const QPointF center = button.rect.center();
 
   if (button.kind == Kind::Color) {
+    const qreal radius = kColorDot / 2.0;
     if (selected) {
-      painter.setPen(QPen(accent_, 2));
+      painter.setPen(QPen(Qt::white, 2));
       painter.setBrush(Qt::NoBrush);
-      painter.drawEllipse(button.rect.center(), 9, 9);
+      painter.drawEllipse(center, radius + 2.5, radius + 2.5);
     }
     const QColor color = core::paletteColor(button.id);
-    painter.setPen(color == QColor(Qt::white) ? QColor(120, 120, 120)
-                                              : Qt::NoPen);
+    painter.setPen(color.lightness() > 200 ? QColor(0, 0, 0, 80) : Qt::NoPen);
     painter.setBrush(color);
-    painter.drawEllipse(button.rect.center(), 7, 7);
+    painter.drawEllipse(center, radius, radius);
     return;
   }
 
   if (button.kind == Kind::Width) {
+    const qreal radius = core::kDotDiameters[button.id] / 2.0;
     if (selected) {
-      painter.setPen(QPen(accent_, 2));
+      painter.setPen(QPen(Qt::white, 2));
       painter.setBrush(Qt::NoBrush);
-      painter.drawEllipse(button.rect.center(), 9, 9);
+      painter.drawEllipse(center, radius + 2.5, radius + 2.5);
     }
     painter.setPen(Qt::NoPen);
-    painter.setBrush(QColor(230, 230, 230));
-    const int diameter = core::kDotDiameters[button.id];
-    painter.drawEllipse(button.rect.center(), diameter / 2, diameter / 2);
+    painter.setBrush(kIconColor);
+    painter.drawEllipse(center, radius, radius);
     return;
   }
 
   if (selected || hovered) {
     painter.setPen(Qt::NoPen);
-    painter.setBrush(selected ? accent_ : QColor(46, 48, 53));
-    painter.drawRoundedRect(button.rect.adjusted(1, 1, -1, -1), 6, 6);
+    painter.setBrush(selected ? accent_ : kHoverColor);
+    painter.drawRoundedRect(button.rect, kButtonRadius, kButtonRadius);
   }
 
-  const QColor iconColor = selected ? QColor(Qt::white) : QColor(230, 230, 230);
-  const QRect iconRect = button.rect.adjusted(6, 6, -6, -6);
-
-  if (button.kind == Kind::Tool) {
-    paintToolIcon(painter, iconRect, button.id, iconColor);
-  } else {
-    paintActionIcon(painter, iconRect, button.id, iconColor);
-  }
+  const QColor iconColor = (selected || hovered) ? QColor(Qt::white)
+                                                 : kIconColor;
+  const QRectF iconRect(center.x() - kIconSize / 2.0,
+                        center.y() - kIconSize / 2.0, kIconSize, kIconSize);
+  paintIcon(painter, iconRect, iconFor(button.kind, button.id), iconColor);
 }
 
-void ToolbarWidget::paintToolIcon(QPainter& painter, const QRect& rect, int tool,
-                                  const QColor& color) const {
-  painter.save();
-  painter.setPen(QPen(color, 1.6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-  painter.setBrush(Qt::NoBrush);
-
-  switch (tool) {
-    case 0:  // rectangle
-      painter.drawRect(rect.adjusted(1, 2, -1, -2));
-      break;
-    case 1:  // ellipse
-      painter.drawEllipse(rect.adjusted(1, 2, -1, -2));
-      break;
-    case 2: {  // arrow
-      const QPoint start(rect.left() + 1, rect.bottom() - 1);
-      const QPoint end(rect.right() - 1, rect.top() + 1);
-      painter.drawLine(start, end);
-      painter.drawLine(end, QPoint(end.x() - 5, end.y() + 2));
-      painter.drawLine(end, QPoint(end.x() - 2, end.y() + 5));
-      break;
-    }
-    case 3: {  // pen
-      painter.drawLine(rect.bottomLeft() + QPoint(2, -2),
-                       rect.topRight() + QPoint(-2, 2));
-      painter.setBrush(color);
-      painter.drawEllipse(QPointF(rect.topRight() + QPoint(-2, 2)), 1.8, 1.8);
-      break;
-    }
-    case 4: {  // highlighter
-      QColor marker = color;
-      marker.setAlpha(150);
-      painter.setPen(QPen(marker, static_cast<int>(rect.height() * 0.45),
-                          Qt::SolidLine, Qt::RoundCap));
-      painter.drawLine(rect.bottomLeft() + QPoint(3, -3),
-                       rect.topRight() + QPoint(-3, 3));
-      break;
-    }
-    case 5: {  // mosaic
-      const int cell = std::max(3, rect.width() / 3);
-      for (int row = 0; row < 3; ++row) {
-        for (int col = 0; col < 3; ++col) {
-          if ((row + col) % 2 != 0) continue;
-          painter.fillRect(QRect(rect.left() + col * cell,
-                                 rect.top() + row * cell, cell - 1, cell - 1),
-                           color);
-        }
-      }
-      break;
+ToolbarWidget::Icon ToolbarWidget::iconFor(Kind kind, int id) {
+  if (kind == Kind::Tool) {
+    switch (id) {
+      case 0:
+        return Icon::Rect;
+      case 1:
+        return Icon::Ellipse;
+      case 2:
+        return Icon::Arrow;
+      case 3:
+        return Icon::Pen;
+      case 4:
+        return Icon::Highlighter;
+      case 5:
+        return Icon::Mosaic;
+      default:
+        return Icon::Rect;
     }
   }
-  painter.restore();
-}
 
-void ToolbarWidget::paintActionIcon(QPainter& painter, const QRect& rect,
-                                    int action, const QColor& color) const {
-  switch (action) {
+  switch (id) {
     case kUndo:
-      paintUndoIcon(painter, rect, color);
-      break;
+      return Icon::Undo;
     case kPin:
-      paintPinIcon(painter, rect, color);
-      break;
+      return Icon::Pin;
     case kCopy:
-      paintCopyIcon(painter, rect, color);
-      break;
+      return Icon::Copy;
     case kSave:
-      paintSaveIcon(painter, rect, color);
-      break;
-    case kCancel: {
-      painter.save();
-      painter.setPen(
-          QPen(color, 1.8, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-      painter.drawLine(rect.topLeft() + QPoint(2, 2),
-                       rect.bottomRight() - QPoint(2, 2));
-      painter.drawLine(rect.topRight() + QPoint(-2, 2),
-                       rect.bottomLeft() + QPoint(2, -2));
-      painter.restore();
-      break;
-    }
+      return Icon::Save;
+    case kCancel:
+      return Icon::Cancel;
+    default:
+      return Icon::Rect;
   }
 }
 
-void ToolbarWidget::paintUndoIcon(QPainter& painter, const QRect& rect,
-                                  const QColor& color) const {
+void ToolbarWidget::paintIcon(QPainter& painter, const QRectF& rect, Icon icon,
+                              const QColor& color) const {
   painter.save();
-  painter.setPen(QPen(color, 1.6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+  painter.translate(rect.topLeft());
+  painter.scale(rect.width() / 24.0, rect.height() / 24.0);
+  painter.setPen(
+      QPen(color, 1.7, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
   painter.setBrush(Qt::NoBrush);
-  QPainterPath path;
-  path.moveTo(rect.right() - 1, rect.bottom() - 1);
-  path.cubicTo(rect.right() - 1, rect.top() + 2, rect.left() + 5,
-               rect.top() + 2, rect.left() + 4, rect.center().y() + 2);
-  painter.drawPath(path);
-  const QPoint tip(rect.left() + 4, rect.center().y() + 2);
-  painter.drawLine(tip, tip + QPoint(4, -4));
-  painter.drawLine(tip, tip + QPoint(2, 5));
-  painter.restore();
-}
 
-void ToolbarWidget::paintPinIcon(QPainter& painter, const QRect& rect,
-                                 const QColor& color) const {
-  painter.save();
-  painter.setPen(QPen(color, 1.6, Qt::SolidLine, Qt::RoundCap));
-  painter.setBrush(color);
-  const QPoint center = rect.center();
-  painter.drawEllipse(QPointF(center + QPoint(0, -3)), 3.6, 3.6);
-  painter.drawLine(center + QPoint(0, 1), center + QPoint(0, 6));
-  painter.drawLine(center + QPoint(-4, 6), center + QPoint(4, 6));
-  painter.restore();
-}
+  switch (icon) {
+    case Icon::Rect:
+      painter.drawRoundedRect(QRectF(4, 6.5, 16, 11), 1, 1);
+      break;
+    case Icon::Ellipse:
+      painter.drawEllipse(QPointF(12, 12), 8, 5.5);
+      break;
+    case Icon::Arrow: {
+      painter.drawLine(QPointF(6, 18), QPointF(18, 6));
+      QPainterPath path;
+      path.moveTo(12.5, 6);
+      path.lineTo(18, 6);
+      path.lineTo(18, 11.5);
+      painter.drawPath(path);
+      break;
+    }
+    case Icon::Pen: {
+      QPainterPath path;
+      path.moveTo(4, 20);
+      path.lineTo(5.2, 15.4);
+      path.lineTo(16, 4.6);
+      path.quadTo(17.4, 3.2, 18.8, 4.6);
+      path.lineTo(20.4, 6.2);
+      path.quadTo(21.8, 7.6, 20.4, 9.0);
+      path.lineTo(9.6, 19.8);
+      path.closeSubpath();
+      painter.drawPath(path);
+      painter.drawLine(QPointF(13.5, 6.5), QPointF(17.5, 10.5));
+      break;
+    }
+    case Icon::Highlighter: {
+      painter.drawLine(QPointF(4, 20), QPointF(11, 20));
+      QPainterPath path;
+      path.moveTo(8, 16);
+      path.lineTo(15.5, 5);
+      path.lineTo(18.9, 7.3);
+      path.lineTo(11.4, 18);
+      path.lineTo(6.8, 18.9);
+      path.closeSubpath();
+      painter.drawPath(path);
+      break;
+    }
+    case Icon::Mosaic:
+      painter.drawRect(QRectF(4, 4, 7, 7));
+      painter.drawRect(QRectF(13, 4, 7, 7));
+      painter.drawRect(QRectF(4, 13, 7, 7));
+      painter.drawRect(QRectF(13, 13, 7, 7));
+      break;
+    case Icon::Undo: {
+      QPainterPath arrow;
+      arrow.moveTo(7.5, 5);
+      arrow.lineTo(3.5, 8.5);
+      arrow.lineTo(7.5, 12);
+      painter.drawPath(arrow);
 
-void ToolbarWidget::paintCopyIcon(QPainter& painter, const QRect& rect,
-                                  const QColor& color) const {
-  painter.save();
-  painter.setPen(QPen(color, 1.4));
-  painter.setBrush(Qt::NoBrush);
-  painter.drawRoundedRect(rect.adjusted(0, 0, -4, -4), 2, 2);
-  painter.drawRoundedRect(rect.adjusted(4, 4, 0, 0), 2, 2);
-  painter.restore();
-}
+      QPainterPath arc;
+      arc.moveTo(4, 8.5);
+      arc.lineTo(15, 8.5);
+      arc.arcTo(QRectF(9.5, 8.5, 11, 11), 90, -180);
+      arc.lineTo(8, 19.5);
+      painter.drawPath(arc);
+      break;
+    }
+    case Icon::Pin: {
+      QPainterPath path;
+      path.moveTo(9.5, 3.5);
+      path.lineTo(14.5, 3.5);
+      path.lineTo(13.8, 7.7);
+      path.lineTo(16.5, 11);
+      path.lineTo(7.5, 11);
+      path.lineTo(10.2, 7.7);
+      path.closeSubpath();
+      painter.drawPath(path);
+      painter.drawLine(QPointF(12, 11), QPointF(12, 20));
+      break;
+    }
+    case Icon::Copy: {
+      painter.drawRoundedRect(QRectF(9, 9, 11, 11), 2, 2);
+      QPainterPath path;
+      path.moveTo(5, 15);
+      path.lineTo(5, 5);
+      path.quadTo(5, 3, 7, 3);
+      path.lineTo(17, 3);
+      painter.drawPath(path);
+      break;
+    }
+    case Icon::Save: {
+      QPainterPath outline;
+      outline.moveTo(5, 4);
+      outline.lineTo(16, 4);
+      outline.lineTo(19, 7);
+      outline.lineTo(19, 20);
+      outline.lineTo(5, 20);
+      outline.closeSubpath();
+      painter.drawPath(outline);
 
-void ToolbarWidget::paintSaveIcon(QPainter& painter, const QRect& rect,
-                                  const QColor& color) const {
-  painter.save();
-  painter.setPen(QPen(color, 1.4));
-  painter.setBrush(Qt::NoBrush);
-  painter.drawRoundedRect(rect.adjusted(1, 1, -1, -1), 2, 2);
-  painter.drawRect(QRect(rect.left() + 4, rect.top() + 1, rect.width() - 8, 5));
-  painter.drawRect(
-      QRect(rect.left() + 3, rect.bottom() - 6, rect.width() - 6, 5));
+      QPainterPath top;
+      top.moveTo(8, 4);
+      top.lineTo(8, 9);
+      top.lineTo(15, 9);
+      top.lineTo(15, 4);
+      painter.drawPath(top);
+
+      QPainterPath bottom;
+      bottom.moveTo(8, 20);
+      bottom.lineTo(8, 14);
+      bottom.lineTo(16, 14);
+      bottom.lineTo(16, 20);
+      painter.drawPath(bottom);
+      break;
+    }
+    case Icon::Cancel:
+      painter.drawLine(QPointF(6, 6), QPointF(18, 18));
+      painter.drawLine(QPointF(18, 6), QPointF(6, 18));
+      break;
+  }
+
   painter.restore();
 }
 

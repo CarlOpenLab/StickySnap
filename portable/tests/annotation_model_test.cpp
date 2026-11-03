@@ -1,3 +1,4 @@
+#include <QPainter>
 #include <QtTest>
 
 #include "core/annotation_model.h"
@@ -39,6 +40,7 @@ class AnnotationModelTest : public QObject {
   void markerIsSemiTransparentAndWider();
   void arrowDrawsLineAndHead();
   void mosaicPixelsWithinABlockAreEqual();
+  void flattenMatchesPreviewRendering();
 };
 
 void AnnotationModelTest::rectDrawsBorderButNotInterior() {
@@ -140,6 +142,24 @@ void AnnotationModelTest::mosaicPixelsWithinABlockAreEqual() {
 
   QCOMPARE(a, b);
   QVERIFY(a != base.pixelColor(22, 22));
+}
+
+void AnnotationModelTest::flattenMatchesPreviewRendering() {
+  const QImage base = blackCanvas();
+  const Shape shape = makeShape(ShapeType::Pen, Qt::red, 2,
+                                {QPoint(10, 10), QPoint(50, 50)});
+
+  AnnotationModel model;
+  model.addShape(shape);
+  const QImage flattened = model.flatten(base);
+
+  QImage preview = base;
+  QPainter painter(&preview);
+  painter.setRenderHint(QPainter::Antialiasing, true);
+  paintShape(painter, shape);
+  painter.end();
+
+  QCOMPARE(flattened, preview);
 }
 
 QTEST_MAIN(AnnotationModelTest)

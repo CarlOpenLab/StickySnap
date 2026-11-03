@@ -12,18 +12,25 @@ namespace sticky::core {
 namespace {
 
 constexpr int kMarkerAlpha = 110;
-constexpr int kMosaicBlock = 10;
+constexpr int kMosaicBlock = 10;  // Logical points per mosaic block.
 
-int brushRadius(int width) { return 8 + width * 3; }
+qreal shapeScale(const Shape& shape) {
+  return shape.scale > 0.0 ? shape.scale : 1.0;
+}
+
+qreal brushRadius(const Shape& shape) {
+  return (8.0 + shape.width * 3.0) * shapeScale(shape);
+}
 
 void drawStroke(QPainter& painter, const Shape& shape) {
   if (shape.points.isEmpty()) return;
 
+  const qreal scale = shapeScale(shape);
   QColor color = shape.color;
-  int penWidth = std::max(1, shape.width);
+  int penWidth = std::max(1, qRound(shape.width * scale));
   if (shape.type == ShapeType::Marker) {
     color.setAlpha(kMarkerAlpha);
-    penWidth = std::max(1, shape.width * 4);
+    penWidth = std::max(1, qRound(shape.width * 4 * scale));
   }
 
   painter.setPen(
@@ -53,7 +60,7 @@ void drawStroke(QPainter& painter, const Shape& shape) {
 
       const double angle = std::atan2(static_cast<double>(last.y() - first.y()),
                                      static_cast<double>(last.x() - first.x()));
-      const double headLength = 3.0 * penWidth + 4.0;
+      const double headLength = (3.0 * shape.width + 4.0) * scale;
       const QPointF head1(
           last.x() - headLength * std::cos(angle - 0.45),
           last.y() - headLength * std::sin(angle - 0.45));
@@ -85,15 +92,16 @@ void drawStroke(QPainter& painter, const Shape& shape) {
   }
 }
 
-QImage pixelate(const QImage& source) {
+QImage pixelate(const QImage& source, int blockSize) {
   QImage blocky = source.convertToFormat(QImage::Format_ARGB32);
   const int width = blocky.width();
   const int height = blocky.height();
+  blockSize = std::max(1, blockSize);
 
-  for (int by = 0; by < height; by += kMosaicBlock) {
-    const int blockHeight = std::min(kMosaicBlock, height - by);
-    for (int bx = 0; bx < width; bx += kMosaicBlock) {
-      const int blockWidth = std::min(kMosaicBlock, width - bx);
+  for (int by = 0; by < height; by += blockSize) {
+    const int blockHeight = std::min(blockSize, height - by);
+    for (int bx = 0; bx < width; bx += blockSize) {
+      const int blockWidth = std::min(blockSize, width - bx);
 
       qint64 sumR = 0;
       qint64 sumG = 0;
@@ -125,7 +133,7 @@ QImage pixelate(const QImage& source) {
 }
 
 QPainterPath mosaicMask(const Shape& shape) {
-  const qreal radius = brushRadius(shape.width);
+  const qreal radius = brushRadius(shape);
 
   if (shape.points.size() == 1) {
     QPainterPath dot;
@@ -148,7 +156,8 @@ QPainterPath mosaicMask(const Shape& shape) {
 void applyMosaic(QImage& target, const QImage& base, const Shape& shape) {
   if (shape.points.isEmpty()) return;
 
-  const QImage blocky = pixelate(base);
+  const QImage blocky =
+      pixelate(base, qRound(kMosaicBlock * shapeScale(shape)));
   QPainter painter(&target);
   painter.setRenderHint(QPainter::Antialiasing, false);
   painter.setCompositionMode(QPainter::CompositionMode_Source);
@@ -180,7 +189,7 @@ QImage AnnotationModel::flatten(const QImage& base) const {
   }
 
   QPainter painter(&result);
-  painter.setRenderHint(QPainter::Antialiasing, false);
+  painter.setRenderHint(QPainter::Antialiasing, true);
 
   for (const Shape& shape : shapes_) {
     if (shape.type == ShapeType::Marker) drawStroke(painter, shape);

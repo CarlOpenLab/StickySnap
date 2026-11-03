@@ -22,8 +22,11 @@ enum class ShapeType {
 struct Shape {
   ShapeType type = ShapeType::Rect;
   QColor color = Qt::red;
-  int width = 2;
+  int width = 2;  // Logical stroke width in points.
   QVector<QPoint> points;
+  // Image pixels per logical point (screen DPR). Keeps stroke widths, arrow
+  // heads and mosaic blocks the same visual size on Retina displays.
+  qreal scale = 1.0;
 };
 
 // Ordered annotations over a captured image. Rendering groups mosaic first,

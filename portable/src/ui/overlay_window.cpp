@@ -53,6 +53,8 @@ OverlayWindow::OverlayWindow(platform::DisplayCapture capture,
     if (tool < 0) {
       drawing_ = false;
       preview_ = {};
+      mosaicPreviewCache_ = QImage();
+      mosaicPreviewDirty_ = true;
     }
     update();
   });
@@ -125,6 +127,7 @@ core::Shape OverlayWindow::makeShape(core::ShapeType type,
   shape.type = type;
   shape.color = core::paletteColor(toolbar_->colorIndex());
   shape.width = core::kLineWidths[std::clamp(toolbar_->widthIndex(), 0, 2)];
+  shape.scale = capture_.dpr > 0 ? capture_.dpr : 1.0;
   shape.points = {imagePoint};
   return shape;
 }
@@ -139,8 +142,30 @@ void OverlayWindow::paintEvent(QPaintEvent*) {
   painter.fillRect(rect(), QColor(0, 0, 0, dimAlpha));
 
   const QRect sel = selection_.rect();
+  const bool drawingMosaic =
+      drawing_ && preview_.type == core::ShapeType::Mosaic;
   if (selection_.hasSelection() && selection_.isValid()) {
-    if (annotations_.empty()) {
+    if (drawingMosaic) {
+      // Show the real mosaic while dragging instead of brush outlines. The
+      // temporary model keeps the same layer order as the committed result.
+      if (mosaicPreviewDirty_ || mosaicPreviewCache_.isNull()) {
+        const QRect source = selectionImageRect();
+        if (!source.isEmpty()) {
+          const QImage crop = capture_.image.copy(source);
+          core::AnnotationModel live = annotations_;
+          live.addShape(preview_);
+          mosaicPreviewCache_ = live.flatten(crop);
+          mosaicPreviewCache_.setDevicePixelRatio(
+              capture_.dpr > 0 ? capture_.dpr : 1.0);
+        } else {
+          mosaicPreviewCache_ = QImage();
+        }
+        mosaicPreviewDirty_ = false;
+      }
+      if (!mosaicPreviewCache_.isNull()) {
+        painter.drawImage(sel, mosaicPreviewCache_);
+      }
+    } else if (annotations_.empty()) {
       const QRect source = selectionImageRect();
       if (!source.isEmpty()) {
         painter.drawImage(sel, capture_.image, source);
@@ -156,7 +181,7 @@ void OverlayWindow::paintEvent(QPaintEvent*) {
       }
     }
 
-    drawPreview(painter);
+    if (!drawingMosaic) drawPreview(painter);
 
     painter.setPen(QPen(settings_.accent, 2));
     painter.setBrush(Qt::NoBrush);
@@ -185,19 +210,11 @@ void OverlayWindow::drawPreview(QPainter& painter) {
 
   painter.save();
   painter.setRenderHint(QPainter::Antialiasing, true);
+  painter.setClipRect(selection_.rect());
   painter.translate(selection_.rect().topLeft());
   painter.scale(1.0 / dpr, 1.0 / dpr);
 
-  if (preview_.type == core::ShapeType::Mosaic) {
-    painter.setPen(QPen(QColor(150, 150, 150), 1));
-    painter.setBrush(Qt::NoBrush);
-    const int radius = 8 + preview_.width * 3;
-    for (const QPoint& point : preview_.points) {
-      painter.drawEllipse(point, radius, radius);
-    }
-  } else {
-    core::paintShape(painter, preview_);
-  }
+  core::paintShape(painter, preview_);
 
   painter.restore();
 }
@@ -343,6 +360,8 @@ void OverlayWindow::mousePressEvent(QMouseEvent* event) {
           toImagePoint(event->pos()) - selectionImageRect().topLeft();
       preview_ = makeShape(
           static_cast<core::ShapeType>(toolbar_->activeTool()), imagePoint);
+      mosaicPreviewCache_ = QImage();
+      mosaicPreviewDirty_ = true;
     }
     // Without an active tool, a click inside the selection keeps it intact.
     update();
@@ -369,8 +388,22 @@ void OverlayWindow::mouseMoveEvent(QMouseEvent* event) {
   if (drawing_) {
     const QPoint imagePoint =
         toImagePoint(event->pos()) - selectionImageRect().topLeft();
-    if (preview_.points.isEmpty() || preview_.points.last() != imagePoint) {
+    const bool twoPointShape =
+        preview_.type == core::ShapeType::Rect ||
+        preview_.type == core::ShapeType::Ellipse ||
+        preview_.type == core::ShapeType::Arrow;
+    if (twoPointShape) {
+      if (preview_.points.size() < 2) {
+        preview_.points.push_back(imagePoint);
+      } else {
+        preview_.points[1] = imagePoint;
+      }
+    } else if (preview_.points.isEmpty() ||
+               preview_.points.last() != imagePoint) {
       preview_.points.push_back(imagePoint);
+    }
+    if (preview_.type == core::ShapeType::Mosaic) {
+      mosaicPreviewDirty_ = true;
     }
     update();
     event->accept();
@@ -403,6 +436,8 @@ void OverlayWindow::mouseReleaseEvent(QMouseEvent* event) {
       cacheDirty_ = true;
     }
     preview_ = {};
+    mosaicPreviewCache_ = QImage();
+    mosaicPreviewDirty_ = true;
     update();
     event->accept();
     return;

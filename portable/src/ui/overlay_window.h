@@ -86,6 +86,8 @@ class OverlayWindow : public QWidget {
   bool moved_ = false;
   bool drawing_ = false;
   core::Shape preview_;
+  QImage mosaicPreviewCache_;
+  bool mosaicPreviewDirty_ = true;
 
   ToolbarWidget* toolbar_ = nullptr;
   CommitFn onCommit_;
