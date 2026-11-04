@@ -25,9 +25,9 @@ void Shape::Offset(int dx, int dy) {
 
 namespace {
 
-// 选区边框主题色统一来自 config.h（kAccent / kAccentDark）
-constexpr COLORREF kSelAccent = config::kAccent;
-constexpr COLORREF kSelAccentDark = config::kAccentDark;
+// 选区边框固定高对比红，与品牌强调色分离
+constexpr COLORREF kSelAccent = config::kSelection;
+constexpr COLORREF kSelAccentDark = config::kSelectionDark;
 constexpr COLORREF kHoverAccent = RGB(0x38, 0xE1, 0xCF);  // 落地页 --accent-2 青（与选区红/蓝区分语义）
 
 constexpr DWORD kMagic = 0x00FF00FF;  // ARGB 画布透明键（品红，不在调色板中）
@@ -415,7 +415,7 @@ LRESULT OverlayWindow::Handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
           RestoreDC(comp, sc);
         }
         // 5) 选区边框：2px 单色细线（贴内容外沿）+ 8 个调节圆点（四角 + 四边中点）
-        FillRing(comp, sel_, 0, 2, st_.accent);
+        FillRing(comp, sel_, 0, 2, kSelAccent);
         {
           const POINT dots[8] = {
               {sel_.left, sel_.top},
@@ -427,8 +427,8 @@ LRESULT OverlayWindow::Handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
               {(sel_.left + sel_.right) / 2, sel_.bottom},
               {sel_.right, sel_.bottom},
           };
-          HBRUSH dotBr = CreateSolidBrush(st_.accent);
-          HPEN dotPen = CreatePen(PS_SOLID, 1, st_.accent_dark);
+          HBRUSH dotBr = CreateSolidBrush(kSelAccent);
+          HPEN dotPen = CreatePen(PS_SOLID, 1, kSelAccentDark);
           HGDIOBJ db = SelectObject(comp, dotBr);
           HGDIOBJ dp = SelectObject(comp, dotPen);
           for (const auto& pt : dots)
@@ -440,7 +440,7 @@ LRESULT OverlayWindow::Handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         }
         if (selecting_) DrawSizeLabel(comp);
       } else if (!selecting_ && hover_valid_) {
-        FillRing(comp, hover_rect_, 0, 2, st_.accent);
+        FillRing(comp, hover_rect_, 0, 2, kHoverAccent);
       }
       if (!selecting_ && !HasSel()) DrawMagnifier(comp);
       RestoreDC(bb_dc_, saved_bb);

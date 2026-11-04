@@ -83,7 +83,7 @@ class ToolbarWidget : public QWidget {
   int colorIndex_ = 4;
   int widthIndex_ = 1;
   int hoveredButton_ = -1;
-  QColor accent_ = QColor(QStringLiteral("#FF4B3E"));
+  QColor accent_ = QColor(QStringLiteral("#2F6FED"));
 };
 
 }  // namespace sticky::ui

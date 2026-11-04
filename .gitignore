@@ -1,5 +1,6 @@
 build/
 build-qt/
+.ryugi/
 .vs/
 *.user
 test/out/

@@ -96,7 +96,7 @@ QString SettingsStore::serialize(const Settings& settings) {
   text += QStringLiteral(
       "# StickySnap configuration. Restart the app after editing.\n\n");
   text += QStringLiteral(
-      "# Accent color for the selection border and toolbar (#RRGGBB)\n");
+      "# Accent color for the toolbar and annotation UI (#RRGGBB)\n");
   text += QStringLiteral("accent=%1\n\n")
               .arg(settings.accent.name(QColor::HexRgb));
   text += QStringLiteral(

@@ -15,7 +15,7 @@
 // 用户配置（%APPDATA%\StickySnap\config.ini，key=value 文本，# 开头为注释）
 // 首次运行自动生成带注释的默认文件；改完保存重启程序生效
 struct Settings {
-  COLORREF accent = config::kAccent;        // 边框/圆点/工具栏激活色
+  COLORREF accent = config::kAccent;        // 工具栏/标注激活色（品牌蓝）
   COLORREF accent_dark = config::kAccentDark;
   UINT vk_shot = config::kVkShot;           // 截图热键
   UINT vk_pin = config::kVkPin;             // 贴剪贴板热键

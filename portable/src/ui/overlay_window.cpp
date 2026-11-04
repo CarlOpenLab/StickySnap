@@ -25,6 +25,8 @@ constexpr int kMagnifierScale = 12;
 constexpr int kMagnifierSize = kMagnifierSamples * kMagnifierScale;
 
 QColor hoverAccent() { return QColor(0x38, 0xE1, 0xCF); }
+// The selection frame keeps a high-contrast red on every brand accent.
+QColor selectionAccent() { return QColor(0xFF, 0x45, 0x3A); }
 
 }  // namespace
 
@@ -183,7 +185,7 @@ void OverlayWindow::paintEvent(QPaintEvent*) {
 
     if (!drawingMosaic) drawPreview(painter);
 
-    painter.setPen(QPen(settings_.accent, 2));
+    painter.setPen(QPen(selectionAccent(), 2));
     painter.setBrush(Qt::NoBrush);
     painter.drawRect(sel.adjusted(0, 0, -1, -1));
     drawSelectionLabel(painter);

@@ -5,7 +5,7 @@
 # 输出：
 #   res/toolbar.png        —— 11 个灰色图标（常态，#C9CED6 不透明）
 #   res/toolbar_active.png —— 11 个白色图标（悬停/激活态）
-#   res/app.ico            —— App/托盘图钉图标（16/32/48）
+# App/托盘图标由 tools/make_brand_assets.py 从 assets/logo.png 生成。
 # 纯标准库。用法：python tools/make_icons.py
 import math
 import os
@@ -311,65 +311,10 @@ def build_strip(out_path, color):
         f.write(png)
     print(f"wrote {out_path} ({n} icons, {CELL * n}x{CELL}, {len(png)} bytes)")
 
-# ---------------- App 图钉图标（自绘 SDF，16/32/48） ----------------
-
-def sd_seg(px, py, ax, ay, bx, by):
-    pax, pay = px - ax, py - ay
-    bax, bay = bx - ax, by - ay
-    dd = bax * bax + bay * bay
-    h = 0.0 if dd == 0 else max(0.0, min(1.0, (pax * bax + pay * bay) / dd))
-    return math.hypot(pax - h * bax, pay - h * bay)
-
-def sd_circle(px, py, cx, cy, r):
-    return math.hypot(px - cx, py - cy) - r
-
-def pushpin_rows(size):
-    rows = []
-    for Y in range(size):
-        row = bytearray()
-        for X in range(size):
-            x = (X + 0.5) * 32.0 / size
-            y = (Y + 0.5) * 32.0 / size
-            hit_needle = sd_seg(x, y, 13, 21, 7, 30) <= 1.7
-            d_head = sd_circle(x, y, 16, 13, 11.0)
-            if not (hit_needle or d_head <= 0):
-                row += bytes((0, 0, 0, 0))
-                continue
-            if hit_needle and d_head > 0:
-                row += bytes((205, 205, 212, 255))
-                continue
-            r, g, b = 226, 62, 62
-            if d_head > -1.4:
-                r, g, b = 178, 40, 40
-            if sd_circle(x, y, 12.5, 9.5, 3.6) <= 0:
-                r, g, b = 255, 255, 255
-            row += bytes((r, g, b, 255))
-        rows.append(bytes(row))
-    return rows
-
-def build_app_ico(out_path):
-    entries = []
-    for size in (16, 32, 48):
-        rows = pushpin_rows(size)
-        entries.append((size, make_png(size, size,
-                                       lambda x, y, rows=rows: rows[y][x * 4:x * 4 + 4])))
-    ico = struct.pack("<HHH", 0, 1, len(entries))
-    offset = 6 + 16 * len(entries)
-    for size, png in entries:
-        ico += struct.pack("<BBBBHHII", size, size, 0, 0, 1, 32, len(png), offset)
-        offset += len(png)
-    for _, png in entries:
-        ico += png
-    os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
-    with open(out_path, "wb") as f:
-        f.write(ico)
-    print(f"wrote {out_path} ({len(ico)} bytes, sizes 16/32/48)")
-
 def main():
     base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     build_strip(os.path.join(base, "res", "toolbar.png"), COLOR_NORMAL)
     build_strip(os.path.join(base, "res", "toolbar_active.png"), COLOR_ACTIVE)
-    build_app_ico(os.path.join(base, "res", "app.ico"))
 
 if __name__ == "__main__":
     main()

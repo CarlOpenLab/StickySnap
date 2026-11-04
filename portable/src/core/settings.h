@@ -8,7 +8,7 @@ namespace sticky::core {
 
 // User-editable configuration, persisted as key=value text.
 struct Settings {
-  QColor accent = QColor(QStringLiteral("#FF4B3E"));
+  QColor accent = QColor(QStringLiteral("#2F6FED"));
 #ifdef Q_OS_MACOS
   // Command+Control+A: Qt maps Command to ControlModifier and Control to
   // MetaModifier on macOS.

@@ -36,6 +36,7 @@ set(STICKYSNAP_APP_SOURCES
   src/ui/pin_window.cpp
   src/ui/settings_dialog.cpp
   src/ui/toolbar_widget.cpp
+  src/ui/tray_icon.cpp
 )
 
 if(APPLE)
@@ -61,13 +62,23 @@ qt_add_executable(StickySnap ${STICKYSNAP_APP_SOURCES})
 target_link_libraries(StickySnap PRIVATE sticky_core Qt6::Widgets)
 target_include_directories(StickySnap PRIVATE src)
 
+qt_add_resources(StickySnap app_icons
+  PREFIX "/icons"
+  BASE "${CMAKE_CURRENT_SOURCE_DIR}/resources"
+  FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/app-icon.png"
+)
+
 if(APPLE)
   set_target_properties(StickySnap PROPERTIES
     MACOSX_BUNDLE TRUE
     MACOSX_BUNDLE_BUNDLE_NAME "StickySnap"
     MACOSX_BUNDLE_GUI_IDENTIFIER "com.carlopenlab.stickysnap"
+    MACOSX_BUNDLE_ICON_FILE "AppIcon.icns"
     MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/macos/Info.plist.in"
   )
+  target_sources(StickySnap PRIVATE macos/AppIcon.icns)
+  set_source_files_properties(macos/AppIcon.icns PROPERTIES
+    MACOSX_PACKAGE_LOCATION "Resources")
   target_link_libraries(StickySnap PRIVATE
     "-framework AppKit"
     "-framework Carbon"
@@ -118,6 +129,7 @@ if(APPLE)
     src/ui/overlay_window.cpp
     src/ui/pin_window.cpp
     src/ui/toolbar_widget.cpp
+    src/ui/tray_icon.cpp
     src/platform/macos/platform_macos.mm
     src/platform/macos/screen_capture_macos.mm
   )

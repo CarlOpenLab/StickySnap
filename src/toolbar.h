@@ -48,8 +48,8 @@ struct ToolbarState {
   int active_tool = -1;  // -1 = 未选工具
   int color = 4;         // 默认选中蓝（落地页 .cdot.on）
   int width = 1;         // 默认 8px 档（落地页 .wdot.on）
-  COLORREF accent = RGB(255, 75, 62);        // 激活底色（落地页 --accent）
-  COLORREF accent_dark = RGB(140, 41, 34);
+  COLORREF accent = RGB(0x2F, 0x6F, 0xED);   // 激活底色（品牌蓝）
+  COLORREF accent_dark = RGB(0x1D, 0x4E, 0xD8);
 };
 
 class ToolbarWindow {

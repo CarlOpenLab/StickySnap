@@ -6,12 +6,9 @@
 #include <QClipboard>
 #include <QCursor>
 #include <QFileInfo>
-#include <QIcon>
 #include <QLockFile>
 #include <QMenu>
 #include <QMessageBox>
-#include <QPainter>
-#include <QPixmap>
 #include <QPushButton>
 #include <QSystemTrayIcon>
 
@@ -21,31 +18,9 @@
 #include "core/settings.h"
 #include "platform/platform.h"
 #include "ui/settings_dialog.h"
+#include "ui/tray_icon.h"
 
 namespace sticky::ui {
-namespace {
-
-QIcon makeTrayIcon() {
-  QPixmap pixmap(44, 44);
-  pixmap.fill(Qt::transparent);
-  pixmap.setDevicePixelRatio(2.0);
-
-  QPainter painter(&pixmap);
-  painter.setRenderHint(QPainter::Antialiasing, true);
-  painter.setPen(Qt::NoPen);
-  painter.setBrush(Qt::black);
-
-  // Pushpin: head, stem, and base.
-  painter.drawEllipse(QPointF(11.0, 8.0), 5.4, 5.4);
-  painter.drawRect(QRectF(9.8, 13.0, 2.4, 5.2));
-  painter.drawRoundedRect(QRectF(6.2, 18.2, 9.6, 2.4), 1.2, 1.2);
-
-  QIcon icon(pixmap);
-  icon.setIsMask(true);
-  return icon;
-}
-
-}  // namespace
 
 AppController::AppController(QObject* parent) : QObject(parent) {}
 

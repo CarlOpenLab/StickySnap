@@ -1,5 +1,6 @@
 #include <QApplication>
 #include <QCoreApplication>
+#include <QIcon>
 #include <QTimer>
 
 #include "platform/platform.h"
@@ -12,6 +13,7 @@ int main(int argc, char** argv) {
   QApplication::setOrganizationName(QStringLiteral("CarlOpenLab"));
   QApplication::setOrganizationDomain(QStringLiteral("carlopenlab.github.io"));
   QApplication::setQuitOnLastWindowClosed(false);
+  QApplication::setWindowIcon(QIcon(QStringLiteral(":/icons/app-icon.png")));
 
   sticky::platform::configureApplication();
 

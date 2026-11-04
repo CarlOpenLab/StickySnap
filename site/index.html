@@ -4,15 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>StickySnap — 把截图钉在桌面上 / Pin a screenshot to your desktop</title>
-<meta name="description" content="StickySnap：Snipaste 式截图与贴图工具。F1 截图、Enter 贴图、F3 贴剪贴板，Windows 原生、免费、纯本地。">
+<meta name="description" content="StickySnap：Snipaste 式截图与贴图工具。F1 截图、Enter 贴图、F3 贴剪贴板，Windows 原生 + macOS Qt 预览，免费、纯本地。">
 <meta name="theme-color" content="#0A0B0E">
-<link rel="icon" href="favicon.ico">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="canonical" href="https://carlopenlab.github.io/StickySnap/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="StickySnap — 把截图钉在桌面上">
-<meta property="og:description" content="F1 截图，Enter 贴图，F3 贴剪贴板。Windows 原生、免费、纯本地。">
+<meta property="og:description" content="F1 截图，Enter 贴图，F3 贴剪贴板。Windows 原生 + macOS Qt 预览，免费、纯本地。">
 <meta property="og:url" content="https://carlopenlab.github.io/StickySnap/">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://carlopenlab.github.io/StickySnap/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="StickySnap — 把截图钉在桌面上">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://carlopenlab.github.io/StickySnap/og.png">
 <script>
 (function(){
   var l='zh';
@@ -36,8 +43,8 @@
   --overlay:rgba(9,11,16,.52);
   --bg:#0A0B0E; --fg:#F4F5F7; --muted:rgba(226,231,240,.64);
   --line:rgba(255,255,255,.10); --card:#111318; --card2:#151922;
-  --accent:#FF4B3E; --accent-fg:#FFFFFF; --accent-soft:rgba(255,75,62,.13);
-  --accent-2:#38E1CF;
+  --accent:#2F6FED; --accent-fg:#FFFFFF; --accent-soft:rgba(47,111,237,.14);
+  --accent-2:#8CC2FF;
   --font-display:'Space Grotesk','PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif;
   --font-body:'Space Grotesk','PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif;
   --font-mono:'JetBrains Mono',Consolas,monospace;
@@ -49,8 +56,8 @@
 body{
   font-family:var(--font-body);
   background:
-    radial-gradient(1000px 520px at 85% -10%,rgba(255,75,62,.05),transparent 60%),
-    radial-gradient(900px 600px at -10% 30%,rgba(56,225,207,.045),transparent 55%),
+    radial-gradient(1000px 520px at 85% -10%,rgba(47,111,237,.09),transparent 60%),
+    radial-gradient(900px 600px at -10% 30%,rgba(140,194,255,.06),transparent 55%),
     var(--bg);
   color:var(--fg);
   line-height:1.75;
@@ -78,8 +85,7 @@ kbd{font-family:var(--font-mono)}
 }
 .nav .wrap{display:flex;align-items:center;gap:16px;height:62px}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-family:var(--font-display);font-weight:700;font-size:17px;letter-spacing:.2px}
-.brand-mark{width:27px;height:27px;border-radius:8px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;flex:none}
-.brand-mark svg{width:14px;height:14px}
+.brand-mark{width:28px;height:28px;display:block;flex:none;object-fit:contain}
 .nav-spacer{flex:1}
 .ver-chip{font-family:var(--font-mono);font-size:11.5px;color:#AEB4C2;border:1px solid var(--line);border-radius:999px;padding:4px 11px;white-space:nowrap}
 .nav-gh{display:flex;align-items:center;gap:7px;font-size:14px;color:var(--muted);text-decoration:none;white-space:nowrap}
@@ -100,10 +106,11 @@ h2{font-size:clamp(24px,3.2vw,38px);font-weight:700;letter-spacing:-.01em}
 .btn-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:30px}
 .btn{display:inline-flex;align-items:center;gap:9px;font-weight:600;font-size:15px;line-height:1;padding:14px 24px;border-radius:var(--btn-r);text-decoration:none;cursor:pointer;transition:transform .15s ease,box-shadow .2s ease,background .2s ease;border:1px solid transparent}
 .btn svg{width:16px;height:16px}
-.btn-primary{background:var(--accent);color:var(--accent-fg);box-shadow:0 10px 30px rgba(255,75,62,.28)}
+.btn-primary{background:var(--accent);color:var(--accent-fg);box-shadow:0 10px 30px rgba(47,111,237,.34)}
 .btn-primary:hover{transform:translateY(-1px)}
 .btn-ghost{border-color:var(--line);background:var(--card);color:var(--fg)}
 .btn-ghost:hover{border-color:var(--muted)}
+.platform-note{margin-top:16px;font-size:13px;color:var(--muted);font-family:var(--font-mono);letter-spacing:.2px}
 
 /* ---------- hero ---------- */
 .hero{padding-top:clamp(48px,7vw,92px)}
@@ -111,9 +118,10 @@ h2{font-size:clamp(24px,3.2vw,38px);font-weight:700;letter-spacing:-.01em}
 .eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:12px;letter-spacing:1.2px;color:#C9CEDA;border:1px solid var(--line);border-radius:999px;padding:6px 14px}
 .eyebrow i{width:6px;height:6px;border-radius:50%;background:var(--accent);flex:none}
 h1{font-size:clamp(34px,5.4vw,64px);font-weight:700;letter-spacing:-.02em;margin-top:22px}
+[data-lang="en"] h1{font-size:clamp(32px,4.6vw,56px)}
 .lede{margin-top:18px;font-size:clamp(15.5px,1.6vw,17.5px);color:var(--muted);max-width:560px}
 .hero-art{position:relative;margin-top:8px;min-width:0}
-.hero-art::before{content:"";position:absolute;inset:-12% -8%;background:radial-gradient(60% 55% at 60% 42%,rgba(255,75,62,.17),transparent 70%),radial-gradient(45% 45% at 25% 75%,rgba(56,225,207,.12),transparent 70%);filter:blur(6px);z-index:-1;border-radius:40px}
+.hero-art::before{content:"";position:absolute;inset:-12% -8%;background:radial-gradient(60% 55% at 60% 42%,rgba(47,111,237,.24),transparent 70%),radial-gradient(45% 45% at 25% 75%,rgba(140,194,255,.14),transparent 70%);filter:blur(6px);z-index:-1;border-radius:40px}
 
 .keys{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;margin-top:28px}
 .k{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--muted)}
@@ -279,13 +287,11 @@ figcaption{font-size:14px;color:var(--muted);line-height:1.6}
   <header class="nav">
     <div class="wrap">
       <a class="brand" href="#top" aria-label="StickySnap">
-        <span class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3.5h5l-.7 4.2 2.7 3.3H7.5l2.7-3.3L9.5 3.5Z"></path><path d="M12 11v9"></path></svg>
-        </span>
+        <img class="brand-mark" src="app-icon.png" width="28" height="28" alt="" aria-hidden="true">
         StickySnap
       </a>
       <span class="nav-spacer"></span>
-      <span class="ver-chip"><span class="bi"><span class="zh">v0.1 · M0 · Windows</span><span class="en">v0.1 · M0 · Windows</span></span></span>
+      <span class="ver-chip"><span class="bi"><span class="zh">v0.1 · M0 · Windows / macOS 预览</span><span class="en">v0.1 · M0 · Windows / macOS preview</span></span></span>
       <a class="nav-gh" href="https://github.com/CarlOpenLab/StickySnap" title="GitHub 仓库">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m8 8-4 4 4 4"></path><path d="m16 8 4 4-4 4"></path></svg>
         GitHub
@@ -303,7 +309,7 @@ figcaption{font-size:14px;color:var(--muted);line-height:1.6}
     <section class="hero" data-screen-label="hero">
       <div class="wrap">
         <div class="hero-copy">
-          <span class="eyebrow"><i aria-hidden="true"></i><span class="bi"><span class="zh">Windows 原生 · 免费无广告 · 纯本地</span><span class="en">NATIVE ON WINDOWS · FREE · LOCAL-FIRST</span></span></span>
+          <span class="eyebrow"><i aria-hidden="true"></i><span class="bi"><span class="zh">Windows 原生 · macOS Qt 预览 · 免费无广告 · 纯本地</span><span class="en">WINDOWS NATIVE · MACOS QT PREVIEW · FREE · LOCAL</span></span></span>
           <h1><span class="bi"><span class="zh">把截图<br>钉在桌面上。</span><span class="en">Pin a screenshot<br>to your desktop.</span></span></h1>
           <p class="lede"><span class="bi"><span class="zh">F1 框住屏幕,窗口自动吸附;Enter 一键贴上桌面;F3 随时把剪贴板贴出来。贴图常驻——重启电脑也还在。</span><span class="en">Press F1 to frame the screen — windows snap under your cursor. Enter pins the shot to your desktop. F3 pins whatever is on your clipboard. Pins stay put, even after a reboot.</span></span></p>
           <div class="btn-row">
@@ -311,10 +317,11 @@ figcaption{font-size:14px;color:var(--muted);line-height:1.6}
               <span class="bi"><span class="zh">在 GitHub 上了解它</span><span class="en">Explore on GitHub</span></span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
             </a>
-            <a class="btn btn-ghost" href="https://github.com/CarlOpenLab/StickySnap/releases" title="下载 M0 体验版">
-              <span class="bi"><span class="zh">下载 M0 体验版</span><span class="en">Download the M0 preview</span></span>
+            <a class="btn btn-ghost" href="https://github.com/CarlOpenLab/StickySnap/releases" title="下载 Windows M0 体验版">
+              <span class="bi"><span class="zh">下载 Windows 体验版</span><span class="en">Download for Windows</span></span>
             </a>
           </div>
+          <p class="platform-note"><span class="bi"><span class="zh">Windows 10/11 x64 · macOS 14+（Qt 预览，源码构建）</span><span class="en">WINDOWS 10/11 X64 · MACOS 14+ (QT PREVIEW, BUILD FROM SOURCE)</span></span></p>
           <div class="keys" aria-label="快捷键">
             <span class="k"><kbd>F1</kbd><span class="bi"><span class="zh">截图</span><span class="en">capture</span></span></span>
             <span class="k"><kbd>Enter</kbd><span class="bi"><span class="zh">贴图</span><span class="en">pin</span></span></span>
@@ -551,6 +558,7 @@ figcaption{font-size:14px;color:var(--muted);line-height:1.6}
               <li><span class="bi"><span class="zh">GIF / APNG 动图贴图</span><span class="en">GIF / APNG animated pins</span></span></li>
               <li><span class="bi"><span class="zh">UI 元素级吸附(UI Automation)</span><span class="en">Element-level snapping (UI Automation)</span></span></li>
               <li><span class="bi"><span class="zh">本地 OCR(Windows.Media.Ocr)</span><span class="en">Local OCR (Windows.Media.Ocr)</span></span></li>
+              <li><span class="bi"><span class="zh">macOS Qt 预览版与 Windows 功能对齐</span><span class="en">Bring the macOS Qt preview to feature parity</span></span></li>
             </ul>
           </li>
           <li class="road r-next">
@@ -559,7 +567,7 @@ figcaption{font-size:14px;color:var(--muted);line-height:1.6}
             <ul>
               <li><span class="bi"><span class="zh">虚拟桌面绑定、Solo 模式、批量操作</span><span class="en">Virtual-desktop binding, Solo mode, batch actions</span></span></li>
               <li><span class="bi"><span class="zh">AI:本地优先、无感集成、BYOK 可选</span><span class="en">AI: local-first, invisible, optional BYOK</span></span></li>
-              <li><span class="bi"><span class="zh">跨平台:macOS / Linux</span><span class="en">Cross-platform: macOS / Linux</span></span></li>
+              <li><span class="bi"><span class="zh">Linux（Qt 6，规划中）</span><span class="en">Linux (Qt 6, planned)</span></span></li>
             </ul>
           </li>
         </ol>
@@ -573,12 +581,10 @@ figcaption{font-size:14px;color:var(--muted);line-height:1.6}
     <div class="wrap">
       <div class="row">
         <span class="brandline">
-          <span class="brand-mark" aria-hidden="true" style="width:24px;height:24px">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3.5h5l-.7 4.2 2.7 3.3H7.5l2.7-3.3L9.5 3.5Z"></path><path d="M12 11v9"></path></svg>
-          </span>
+          <img class="brand-mark" src="app-icon.png" width="24" height="24" alt="" aria-hidden="true" style="width:24px;height:24px">
           StickySnap
         </span>
-        <span class="tag"><span class="bi"><span class="zh">为「贴图」而生的 Windows 截图工具。</span><span class="en">A Windows screenshot tool built around pins.</span></span></span>
+        <span class="tag"><span class="bi"><span class="zh">为「贴图」而生的截图工具。</span><span class="en">A screenshot tool built around pins.</span></span></span>
         <nav aria-label="页脚导航">
           <a href="https://github.com/CarlOpenLab/StickySnap" title="GitHub 仓库">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m8 8-4 4 4 4"></path><path d="m16 8 4 4-4 4"></path></svg>
@@ -594,7 +600,7 @@ figcaption{font-size:14px;color:var(--muted);line-height:1.6}
           </a>
         </nav>
       </div>
-      <p class="smallprint"><span class="bi"><span class="zh">WINDOWS 10/11 X64 · V0.1(M0)· 免费使用 · 功能以实际发布为准</span><span class="en">WINDOWS 10/11 X64 · V0.1 (M0) · FREE · FEATURES SHIP AS THEY'RE READY</span></span></p>
+      <p class="smallprint"><span class="bi"><span class="zh">WINDOWS 10/11 X64 · MACOS 14+ (QT 预览) · V0.1(M0)· 免费使用 · 功能以实际发布为准</span><span class="en">WINDOWS 10/11 X64 · MACOS 14+ (QT PREVIEW) · V0.1 (M0) · FREE · FEATURES SHIP AS THEY'RE READY</span></span></p>
     </div>
   </footer>
 

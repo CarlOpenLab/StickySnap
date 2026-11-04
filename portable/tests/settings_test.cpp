@@ -26,7 +26,7 @@ void SettingsTest::missingFileYieldsDefaults() {
   QString error;
   const Settings settings = store.load(&error);
 
-  QCOMPARE(settings.accent, QColor(QStringLiteral("#FF4B3E")));
+  QCOMPARE(settings.accent, QColor(QStringLiteral("#2F6FED")));
 #ifdef Q_OS_MACOS
   QCOMPARE(settings.hotkeyShot,
            QKeySequence(Qt::CTRL | Qt::META | Qt::Key_A));

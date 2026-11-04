@@ -6,6 +6,7 @@
 #include "ui/overlay_window.h"
 #include "ui/pin_window.h"
 #include "ui/toolbar_widget.h"
+#include "ui/tray_icon.h"
 
 using namespace sticky;
 
@@ -84,6 +85,7 @@ class UiRenderTest : public QObject {
 
  private slots:
   void overlaySelectionShowsToolbarAndCommits();
+  void trayIconRendersMark();
   void pinWindowRendersAtLogicalSize();
   void toolbarUsesLandingPageLayout();
   void toolbarHitTargetsFollowLandingPageLayout();
@@ -345,6 +347,24 @@ void UiRenderTest::mosaicPreviewsPixelsWhileDragging() {
 
   QTest::mouseRelease(&overlay, Qt::LeftButton, Qt::NoModifier,
                       QPoint(350, 300));
+}
+
+void UiRenderTest::trayIconRendersMark() {
+  const QIcon icon = ui::makeTrayIcon();
+  QVERIFY(!icon.isNull());
+
+  const QPixmap pixmap = icon.pixmap(44, 44);
+  QVERIFY(!pixmap.isNull());
+  QVERIFY(pixmap.save(QStringLiteral("/tmp/stickysnap-tray-icon.png")));
+
+  const QImage image = pixmap.toImage();
+  int opaque = 0;
+  for (int y = 0; y < image.height(); ++y) {
+    for (int x = 0; x < image.width(); ++x) {
+      if (image.pixelColor(x, y).alpha() > 0) ++opaque;
+    }
+  }
+  QVERIFY(opaque > 100);
 }
 
 void UiRenderTest::pinWindowRendersAtLogicalSize() {

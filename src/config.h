@@ -41,8 +41,11 @@ inline constexpr WORD kPinMenuCopy = 201;
 inline constexpr WORD kPinMenuSave = 202;
 inline constexpr WORD kPinMenuClose = 203;
 
-// ---------- UI 主题色（选区边框 / 工具栏共用，改这里全局生效） ----------
-inline constexpr COLORREF kAccent     = RGB(0xFF, 0x4B, 0x3E);  // 主强调色（落地页 --accent）
-inline constexpr COLORREF kAccentDark = RGB(0x8C, 0x29, 0x22);  // 强调色深版（圆点描边）
+// ---------- UI 主题色 ----------
+inline constexpr COLORREF kAccent     = RGB(0x2F, 0x6F, 0xED);  // 品牌主色（logo 蓝，工具栏/标注）
+inline constexpr COLORREF kAccentDark = RGB(0x1D, 0x4E, 0xD8);  // 品牌深版（圆点描边/按压）
+// 选区边框保持高对比红，不随品牌强调色变化
+inline constexpr COLORREF kSelection     = RGB(0xFF, 0x45, 0x3A);
+inline constexpr COLORREF kSelectionDark = RGB(0x8C, 0x29, 0x22);
 
 }  // namespace config
