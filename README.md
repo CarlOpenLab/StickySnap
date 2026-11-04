@@ -14,6 +14,7 @@ Snipaste 式截图 + 贴图工具 · Windows 原生 + macOS Qt 6 预览 · 免�
 [![windows-build](https://github.com/CarlOpenLab/StickySnap/actions/workflows/windows.yml/badge.svg)](https://github.com/CarlOpenLab/StickySnap/actions/workflows/windows.yml)
 [![pages](https://github.com/CarlOpenLab/StickySnap/actions/workflows/pages.yml/badge.svg)](https://github.com/CarlOpenLab/StickySnap/actions/workflows/pages.yml)
 ![platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64%20%7C%20macOS%2014%2B-2F6FED)
+![version](https://img.shields.io/badge/version-v0.0.1-2F6FED)
 ![milestone](https://img.shields.io/badge/milestone-M0-2F6FED)
 ![runtime](https://img.shields.io/badge/runtime-Win32%20%7C%20Qt%206-4ADE80)
 

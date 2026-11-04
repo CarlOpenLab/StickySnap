@@ -237,7 +237,7 @@ def make_og(icon: Image.Image) -> Image.Image:
     draw.rounded_rectangle((width - 208, 74, width - 74, 112),
                            radius=19, fill=(*ACCENT, 38),
                            outline=(*ACCENT, 110), width=1)
-    draw.text((width - 190, 84), "v0.1 · M0", font=tiny_font,
+    draw.text((width - 190, 84), "v0.0.1 · M0", font=tiny_font,
               fill=(0xBF, 0xD5, 0xFF))
 
     return canvas.convert("RGB")
