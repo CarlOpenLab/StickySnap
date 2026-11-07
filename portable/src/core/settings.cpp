@@ -25,6 +25,14 @@ bool parseAccent(const QString& value, QColor* accent) {
   return true;
 }
 
+// 1/0/true/false（大小写不敏感），其余回退 fallback。
+bool parseBool(const QString& value, bool fallback) {
+  const QString text = trim(value).toLower();
+  if (text == QLatin1String("1") || text == QLatin1String("true")) return true;
+  if (text == QLatin1String("0") || text == QLatin1String("false")) return false;
+  return fallback;
+}
+
 bool parseHotkey(const QString& value, QKeySequence* sequence) {
   const QKeySequence parsed =
       QKeySequence::fromString(value, QKeySequence::PortableText);
@@ -33,7 +41,18 @@ bool parseHotkey(const QString& value, QKeySequence* sequence) {
   return true;
 }
 
+PinAppearance& mutablePinAppearance() {
+  static PinAppearance appearance;
+  return appearance;
+}
+
 }  // namespace
+
+PinAppearance pinAppearance() { return mutablePinAppearance(); }
+
+void setPinAppearance(const PinAppearance& appearance) {
+  mutablePinAppearance() = appearance;
+}
 
 bool isSupportedHotkey(const QKeySequence& sequence) {
   if (sequence.isEmpty() || sequence.count() != 1) return false;
@@ -85,6 +104,8 @@ Settings SettingsStore::parse(const QString& text) {
       if (ok && percent >= kDimMin && percent <= kDimMax) {
         settings.dimPercent = percent;
       }
+    } else if (key == QLatin1String("pin_border")) {
+      settings.pinBorder = parseBool(value, settings.pinBorder);
     }
   }
 
@@ -106,7 +127,9 @@ QString SettingsStore::serialize(const Settings& settings) {
   text += QStringLiteral("hotkey_pin=%1\n\n")
               .arg(settings.hotkeyPin.toString(QKeySequence::PortableText));
   text += QStringLiteral("# Dimming of the frozen screen, percent (10-90)\n");
-  text += QStringLiteral("dim_opacity=%1\n").arg(settings.dimPercent);
+  text += QStringLiteral("dim_opacity=%1\n\n").arg(settings.dimPercent);
+  text += QStringLiteral("# Draw a 1px border around pinned images (1/0)\n");
+  text += QStringLiteral("pin_border=%1\n").arg(settings.pinBorder ? 1 : 0);
   return text;
 }
 

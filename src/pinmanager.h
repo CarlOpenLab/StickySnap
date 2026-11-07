@@ -19,15 +19,18 @@ class PinManager {
 
   PinWindow* CreatePin(HBITMAP bmp, int x, int y);  // bmp 所有权移交
   void ClosePin(PinWindow* pin);
-  void CloseAll();
-  void Restore();       // 启动时恢复上次会话
-  void MarkDirty();     // 有变更 → 延迟保存
-  void FlushIfDirty();  // 定时器到期调用
+  // mark_dirty=false 用于退出：此时贴图即将全部销毁，不能把空列表写回会话
+  void CloseAll(bool mark_dirty = true);
+  void Restore();          // 启动时恢复上次会话
+  void SaveNow();          // 立即落盘（退出前调用，必须在 CloseAll 之前）
+  void ClampToVirtualScreen();  // 显示器拔插/改分辨率后把贴图拉回可见区域
+  void SetAllPass(bool on);     // 批量开关鼠标穿透（托盘“取消所有穿透”）
+  void MarkDirty();        // 有变更 → 延迟保存
+  void FlushIfDirty();     // 定时器到期调用
 
   const std::vector<std::unique_ptr<PinWindow>>& pins() const { return pins_; }
 
  private:
-  void SaveNow();
 
   HINSTANCE inst_ = nullptr;
   HWND owner_ = nullptr;

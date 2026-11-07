@@ -33,13 +33,44 @@ void PinManager::ClosePin(PinWindow* pin) {
   MarkDirty();
 }
 
-void PinManager::CloseAll() {
+void PinManager::CloseAll(bool mark_dirty) {
   // 先取出裸指针，避免遍历中修改容器
   std::vector<PinWindow*> list;
   list.reserve(pins_.size());
   for (auto& p : pins_) list.push_back(p.get());
   for (auto* p : list) p->Close();
   pins_.clear();
+  // 退出路径必须保持 mark_dirty=false：否则随后 FlushIfDirty 会把空列表写回
+  // index.txt，导致“重启后贴图自动恢复”失效。
+  if (mark_dirty) MarkDirty();
+}
+
+void PinManager::ClampToVirtualScreen() {
+  const int vx = GetSystemMetrics(SM_XVIRTUALSCREEN);
+  const int vy = GetSystemMetrics(SM_YVIRTUALSCREEN);
+  const int vw = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+  const int vh = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+  if (vw <= 0 || vh <= 0) return;
+  bool moved = false;
+  for (auto& p : pins_) {
+    HWND h = p->hwnd();
+    if (!h) continue;
+    RECT r{};
+    GetWindowRect(h, &r);
+    // 至少保留 40px 在可见区域内，避免拔掉副屏后贴图“消失”
+    const int nx = util::Clamp(r.left, vx - (r.right - r.left) + 40, vx + vw - 40);
+    const int ny = util::Clamp(r.top, vy - (r.bottom - r.top) + 40, vy + vh - 40);
+    if (nx != r.left || ny != r.top) {
+      SetWindowPos(h, nullptr, nx, ny, 0, 0,
+                   SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+      moved = true;
+    }
+  }
+  if (moved) MarkDirty();
+}
+
+void PinManager::SetAllPass(bool on) {
+  for (auto& p : pins_) p->SetPassThrough(on);
   MarkDirty();
 }
 

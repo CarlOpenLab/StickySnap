@@ -9,11 +9,32 @@
 #include <windows.h>
 #include <shlobj.h>
 #include <objbase.h>
+#include <sys/stat.h>
 #include <cstdarg>
 #include <cstdio>
 #include <string>
 
 namespace util {
+
+// 运行日志目录：%LOCALAPPDATA%\StickySnap\logs（不随漫游配置同步）
+inline const std::wstring& LogDir() {
+  static std::wstring dir = [] {
+    std::wstring d;
+    PWSTR raw = nullptr;
+    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &raw))) {
+      d = std::wstring(raw) + L"\\StickySnap";
+      CoTaskMemFree(raw);
+    } else {
+      d = L".\\StickySnap";
+    }
+    CreateDirectoryW(d.c_str(), nullptr);
+    CreateDirectoryW((d + L"\\logs").c_str(), nullptr);
+    return d + L"\\logs";
+  }();
+  return dir;
+}
+
+inline std::wstring LogPath() { return LogDir() + L"\\stickysnap.log"; }
 
 inline void Debug(const wchar_t* fmt, ...) {
   wchar_t buf[512];
@@ -23,12 +44,14 @@ inline void Debug(const wchar_t* fmt, ...) {
   va_end(args);
   OutputDebugStringW(buf);
   OutputDebugStringW(L"\n");
-  // 同时追加到 %TEMP%\stickysnap_debug.log（自动化测试取证用）
+  // 追加到日志文件；超过 1 MiB 时轮转为 .old，避免无限增长
   static FILE* f = [] {
-    const wchar_t* tmp = _wgetenv(L"TEMP");
-    wchar_t p[MAX_PATH];
-    swprintf_s(p, L"%s\\stickysnap_debug.log", tmp ? tmp : L".");
-    return _wfopen(p, L"w, ccs=UTF-8");
+    const std::wstring p = LogPath();
+    struct _stati64 st {};
+    if (_wstati64(p.c_str(), &st) == 0 && st.st_size > 1024 * 1024) {
+      MoveFileExW(p.c_str(), (p + L".old").c_str(), MOVEFILE_REPLACE_EXISTING);
+    }
+    return _wfopen(p.c_str(), L"a, ccs=UTF-8");
   }();
   if (f) {
     fwprintf(f, L"%s\n", buf);

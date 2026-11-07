@@ -13,7 +13,8 @@ set(PINSHOT_SOURCES
   src/pinmanager.cpp
   src/capture.cpp
   src/clipboard.cpp
-  src/tray.cpp)
+  src/tray.cpp
+  src/settings_dialog.cpp)
 
 add_executable(StickySnap WIN32 ${PINSHOT_SOURCES})
 
@@ -28,7 +29,7 @@ target_compile_definitions(StickySnap PRIVATE
   _CRT_SECURE_NO_WARNINGS _WIN32_WINNT=0x0A00 WINVER=0x0A00)
 
 target_link_libraries(StickySnap PRIVATE
-  user32 gdi32 shell32 dwmapi msimg32 comdlg32 gdiplus ole32)
+  user32 gdi32 shell32 dwmapi msimg32 comdlg32 gdiplus ole32 advapi32 comctl32)
 
 if (MSVC)
   target_compile_options(StickySnap PRIVATE /W3 /utf-8)
@@ -38,3 +39,28 @@ else()
     target_link_options(StickySnap PRIVATE -municode)
   endif()
 endif()
+
+# ---------- 单元测试（控制台程序，无第三方框架；ctest 驱动） ----------
+enable_testing()
+
+file(GLOB PINSHOT_TEST_SOURCES CONFIGURE_DEPENDS
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/unit/*.cpp)
+
+add_executable(stickysnap_tests ${PINSHOT_TEST_SOURCES})
+
+target_include_directories(stickysnap_tests PRIVATE src)
+
+target_compile_definitions(stickysnap_tests PRIVATE
+  UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN
+  _CRT_SECURE_NO_WARNINGS _WIN32_WINNT=0x0A00 WINVER=0x0A00)
+
+target_link_libraries(stickysnap_tests PRIVATE
+  user32 gdi32 shell32 ole32 gdiplus advapi32 comctl32)
+
+if (MSVC)
+  target_compile_options(stickysnap_tests PRIVATE /W3 /utf-8)
+else()
+  target_compile_options(stickysnap_tests PRIVATE -Wall -Wextra)
+endif()
+
+add_test(NAME unit COMMAND stickysnap_tests)

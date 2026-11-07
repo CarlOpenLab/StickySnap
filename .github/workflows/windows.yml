@@ -19,6 +19,9 @@ jobs:
       - name: Build
         run: cmake --build build --config Release
 
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+
       - name: Package
         shell: pwsh
         run: Compress-Archive -Path build/Release/StickySnap.exe -DestinationPath StickySnap-windows-x64.zip

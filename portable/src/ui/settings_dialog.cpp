@@ -1,5 +1,7 @@
 #include "ui/settings_dialog.h"
 
+#include <QApplication>
+#include <QCheckBox>
 #include <QColorDialog>
 #include <QDialogButtonBox>
 #include <QFormLayout>
@@ -52,10 +54,15 @@ SettingsDialog::SettingsDialog(const core::Settings& settings, QWidget* parent)
   accentButton_ = new QPushButton(this);
   accentButton_->setObjectName(QStringLiteral("accentButton"));
 
+  pinBorder_ = new QCheckBox(tr("显示 1px 边框"), this);
+  pinBorder_->setObjectName(QStringLiteral("pinBorderCheck"));
+  pinBorder_->setChecked(settings.pinBorder);
+
   auto* form = new QFormLayout;
   form->addRow(tr("截图快捷键"), shotEdit_);
   form->addRow(tr("贴图快捷键"), pinEdit_);
   form->addRow(tr("调暗程度"), dimRow);
+  form->addRow(tr("贴图边框"), pinBorder_);
   form->addRow(tr("强调色"), accentButton_);
 
   buttons_ = new QDialogButtonBox(
@@ -83,7 +90,8 @@ SettingsDialog::SettingsDialog(const core::Settings& settings, QWidget* parent)
           &SettingsDialog::updateDimLabel);
   connect(accentButton_, &QPushButton::clicked, this,
           &SettingsDialog::pickAccent);
-  connect(buttons_, &QDialogButtonBox::accepted, this, &QDialog::accept);
+  connect(buttons_, &QDialogButtonBox::accepted, this,
+          &SettingsDialog::accept);
   connect(buttons_, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
   updateDimLabel(dimSlider_->value());
@@ -97,6 +105,7 @@ core::Settings SettingsDialog::settings() const {
   result.hotkeyShot = shotEdit_->keySequence();
   result.hotkeyPin = pinEdit_->keySequence();
   result.dimPercent = dimSlider_->value();
+  result.pinBorder = pinBorder_->isChecked();
   return result;
 }
 
@@ -125,6 +134,22 @@ void SettingsDialog::updateSaveState() {
   if (!save) return;
   save->setEnabled(core::isSupportedHotkey(shotEdit_->keySequence()) &&
                    core::isSupportedHotkey(pinEdit_->keySequence()));
+}
+
+// 点击保存后立即生效：已存在的贴图无需重建即可重绘。
+void SettingsDialog::accept() {
+  applyPinAppearance();
+  QDialog::accept();
+}
+
+void SettingsDialog::applyPinAppearance() {
+  core::PinAppearance appearance = core::pinAppearance();
+  appearance.border = pinBorder_->isChecked();
+  appearance.accent = accent_;
+  core::setPinAppearance(appearance);
+
+  // 已打开的贴图窗按新外观重绘，不需要重建窗口。
+  for (QWidget* widget : QApplication::topLevelWidgets()) widget->update();
 }
 
 }  // namespace sticky::ui

@@ -15,7 +15,52 @@
 
 namespace {
 constexpr int kAlphaMax = 255;
+
+// 边框全局开关：默认开启，由 PinWindow::SetBorderEnabled 修改
+bool g_border_enabled = true;
+
+// 静态画刷（进程级复用，避免每帧创建/泄漏）
+HBRUSH BorderBrushOuter() {
+  static HBRUSH b = CreateSolidBrush(RGB(0, 0, 0));
+  return b;
+}
+HBRUSH BorderBrushInnerIdle() {
+  static HBRUSH b = CreateSolidBrush(RGB(255, 255, 255));
+  return b;
+}
+HBRUSH BorderBrushInnerHover() {
+  static HBRUSH b = CreateSolidBrush(config::kAccent);
+  return b;
+}
+
+// 客户区内侧画 1px 黑 + 1px 白/强调色，不改变窗口尺寸、不裁切图片。
+// FrameRect 的 1px 刷子边框画在矩形内侧，因此外框用整窗矩形、内框用内缩 1px 的矩形。
+void DrawPinBorder(HDC dc, int w, int h, bool hover) {
+  if (w < 4 || h < 4) return;  // 过小的贴图跳过边框，避免整窗被边框盖住
+  RECT outer{0, 0, w, h};
+  RECT inner{1, 1, w - 1, h - 1};
+  FrameRect(dc, &outer, BorderBrushOuter());
+  FrameRect(dc, &inner, hover ? BorderBrushInnerHover() : BorderBrushInnerIdle());
+}
 }  // namespace
+
+void PinWindow::SetBorderEnabled(bool on) {
+  g_border_enabled = on;
+  EnumWindows(&PinWindow::ResetHoverProc, 0);
+}
+
+BOOL CALLBACK PinWindow::ResetHoverProc(HWND hwnd, LPARAM) {
+  wchar_t cls[64] = L"";
+  if (!GetClassNameW(hwnd, cls, 64) || lstrcmpW(cls, config::kPinClass) != 0)
+    return TRUE;
+  auto* p = reinterpret_cast<PinWindow*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+  if (p && p->hwnd_ == hwnd) {
+    p->hover_ = false;
+    p->tracking_ = false;
+  }
+  InvalidateRect(hwnd, nullptr, FALSE);
+  return TRUE;
+}
 
 void PinWindow::RegisterClass(HINSTANCE inst) {
   static bool done = false;
@@ -127,9 +172,19 @@ LRESULT PinWindow::Handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       }
       SelectObject(mem, old);
       DeleteDC(mem);
+      // 边框与图片在同一次 BeginPaint/EndPaint 内绘制，不引入闪烁
+      if (g_border_enabled) DrawPinBorder(dc, w, h, hover_);
       EndPaint(hwnd_, &ps);
       return 0;
     }
+
+    case WM_MOUSELEAVE:
+      tracking_ = false;
+      if (hover_) {
+        hover_ = false;
+        if (g_border_enabled) InvalidateRect(hwnd_, nullptr, FALSE);
+      }
+      return 0;
 
     case WM_NCHITTEST:
       return HTCLIENT;  // 整个窗口都是客户区，禁掉系统拖拽/双击行为
@@ -147,6 +202,20 @@ LRESULT PinWindow::Handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       return 0;
 
     case WM_MOUSEMOVE:
+      if (g_border_enabled && !tracking_) {
+        // 首次进入/移动时注册离开通知，之后 WM_MOUSELEAVE 复位悬停态
+        TRACKMOUSEEVENT tme{};
+        tme.cbSize = sizeof(tme);
+        tme.dwFlags = TME_LEAVE;
+        tme.hwndTrack = hwnd_;
+        if (TrackMouseEvent(&tme)) {
+          tracking_ = true;
+          if (!hover_) {
+            hover_ = true;
+            InvalidateRect(hwnd_, nullptr, FALSE);
+          }
+        }
+      }
       if (dragging_) {
         POINT sp{GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
         ClientToScreen(hwnd_, &sp);

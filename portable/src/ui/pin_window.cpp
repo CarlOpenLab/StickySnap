@@ -2,17 +2,21 @@
 
 #include <QApplication>
 #include <QClipboard>
+#include <QColor>
 #include <QContextMenuEvent>
+#include <QEnterEvent>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QMenu>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPen>
 #include <QWheelEvent>
 
 #include <algorithm>
 
 #include "core/constants.h"
+#include "core/settings.h"
 #include "platform/platform.h"
 
 namespace sticky::ui {
@@ -20,6 +24,18 @@ namespace {
 
 constexpr double kZoomStep = 1.1;
 constexpr int kAlphaStep = 16;
+
+// 首次创建贴图时从 config.ini 载入边框与强调色，重启后沿用用户设置。
+void loadPinAppearanceOnce() {
+  static const bool loaded = [] {
+    const core::Settings settings =
+        core::SettingsStore(platform::settingsPath()).load();
+    core::setPinAppearance(core::PinAppearance{settings.pinBorder,
+                                               settings.accent});
+    return true;
+  }();
+  (void)loaded;
+}
 
 }  // namespace
 
@@ -43,6 +59,7 @@ PinWindow::PinWindow(QImage image, QString imagePath,
   setAttribute(Qt::WA_ShowWithoutActivating);
   setFocusPolicy(Qt::NoFocus);
 
+  loadPinAppearanceOnce();
   move(state.position);
   applyZoom(false);
   setAlpha(alpha_);
@@ -100,6 +117,32 @@ void PinWindow::paintEvent(QPaintEvent*) {
   painter.setRenderHint(QPainter::SmoothPixmapTransform, zoom_ != 1.0);
   const QRectF target(0, 0, width(), height());
   painter.drawImage(target, image_);
+
+  const core::PinAppearance look = core::pinAppearance();
+  if (!look.border || width() < 4 || height() < 4) return;
+
+  // 内容区内侧画 1px 黑 + 1px 白/强调色，不改变窗口几何、不裁切图片。
+  painter.setRenderHint(QPainter::Antialiasing, false);
+  const QRectF outer(0.5, 0.5, width() - 1.0, height() - 1.0);
+  const QRectF inner(1.5, 1.5, width() - 3.0, height() - 3.0);
+  painter.setPen(QPen(QColor(Qt::black), 1.0));
+  painter.drawRect(outer);
+  painter.setPen(QPen(hovered_ ? look.accent : QColor(Qt::white), 1.0));
+  painter.drawRect(inner);
+}
+
+void PinWindow::enterEvent(QEnterEvent* event) {
+  QWidget::enterEvent(event);
+  if (hovered_) return;
+  hovered_ = true;
+  update();
+}
+
+void PinWindow::leaveEvent(QEvent* event) {
+  QWidget::leaveEvent(event);
+  if (!hovered_) return;
+  hovered_ = false;
+  update();
 }
 
 void PinWindow::mousePressEvent(QMouseEvent* event) {
@@ -114,6 +157,10 @@ void PinWindow::mousePressEvent(QMouseEvent* event) {
 }
 
 void PinWindow::mouseMoveEvent(QMouseEvent* event) {
+  if (!hovered_) {
+    hovered_ = true;
+    update();
+  }
   if (!dragging_) {
     QWidget::mouseMoveEvent(event);
     return;

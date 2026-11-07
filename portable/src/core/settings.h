@@ -18,12 +18,24 @@ struct Settings {
 #endif
   QKeySequence hotkeyPin = QKeySequence(Qt::Key_F3);
   int dimPercent = 30;
+  // 贴图窗常显 1px 边框（外黑内白，悬停时内圈换成强调色）。
+  bool pinBorder = true;
 };
 
 // True when the sequence can be registered as a global shortcut. Function
 // keys may stand alone; letters and digits need Ctrl/Meta/Alt so a plain
 // keystroke is never stolen from the focused app.
 bool isSupportedHotkey(const QKeySequence& sequence);
+
+// 进程级共享的贴图外观：贴图窗首次创建时从 config.ini 载入，设置对话框
+// 保存后更新，已打开的贴图窗据此重绘。
+struct PinAppearance {
+  bool border = true;
+  QColor accent = QColor(QStringLiteral("#2F6FED"));
+};
+
+PinAppearance pinAppearance();
+void setPinAppearance(const PinAppearance& appearance);
 
 // Reads and writes config.ini. Missing files yield defaults; invalid values
 // fall back per field rather than rejecting the whole file.

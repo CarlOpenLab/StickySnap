@@ -24,6 +24,12 @@ class App {
   void StartCapture();       // 截图热键：冻结屏幕 → 选区 → 贴图
   void PinClipboard();       // 贴图热键：剪贴板图片 → 贴图
   void OpenConfig();         // 打开 config.ini（用户可编辑，重启生效）
+  void OpenSettings();       // 设置对话框（热键/强调色/边框/自启）
+  void OpenLog();            // 打开运行日志
+  void ShowAbout();          // 关于
+  void ToggleAutostart();    // 开机自启开关（注册表 + config.ini）
+  void RegisterHotkeys();    // （重新）注册全局热键，失败时托盘气泡提示
+  void ApplySettings(const Settings& s);  // 保存后即时生效（热键/边框/自启）
   void RestoreTray();        // explorer 重启后重建托盘图标
 
   HWND hwnd_ = nullptr;

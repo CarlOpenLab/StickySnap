@@ -29,9 +29,6 @@
   root.lang=(l==='en')?'en':'zh';
 })();
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
    StickySnap landing — 暗夜工坊 (dark atelier) 定稿版
@@ -216,6 +213,28 @@ figcaption{font-size:14px;color:var(--muted);line-height:1.6}
 .features h3{font-size:16.5px;font-weight:700}
 .features p{font-size:14.5px;color:var(--muted)}
 
+/* ---------- compare: 三条卖点 + 对比表 ---------- */
+.points{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(16px,2.5vw,28px);margin-bottom:clamp(24px,3.5vw,40px)}
+.point{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:22px 24px;border-radius:var(--radius);border:1px solid var(--line);background:var(--card)}
+.point .f-ic{width:34px;height:34px;border-radius:10px}
+.point .f-ic svg{width:17px;height:17px}
+.point h3{font-size:16px;font-weight:700}
+.point p{font-size:14px;color:var(--muted)}
+.cmp-card{border:1px solid var(--line);border-radius:var(--radius);background:var(--card);overflow:hidden}
+.cmp-scroll{overflow-x:auto}
+.cmp-table{width:100%;border-collapse:collapse;font-size:14px;min-width:620px}
+.cmp-table th,.cmp-table td{padding:13px 16px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
+.cmp-table th:first-child,.cmp-table td:first-child{text-align:left;color:var(--muted);font-weight:400}
+.cmp-table thead th{font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:.5px;color:var(--muted)}
+.cmp-table thead th.self{color:var(--accent-2)}
+.cmp-table .self{background:var(--accent-soft)}
+.cmp-table td.self{color:var(--fg);font-weight:600}
+.cmp-table tbody tr:last-child td{border-bottom:0}
+.cmp-y{color:var(--ok);font-weight:700}
+.cmp-x{color:rgba(226,231,240,.38)}
+.cmp-na{color:rgba(226,231,240,.3)}
+.cmp-legend{margin-top:12px;font-family:var(--font-mono);font-size:12px;letter-spacing:.3px;color:var(--muted)}
+
 /* ---------- roadmap ---------- */
 .roadmap ol{list-style:none;display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(16px,2.5vw,28px)}
 .road{display:flex;flex-direction:column;align-items:flex-start;gap:12px;padding:24px;border-radius:var(--radius);border:1px solid var(--line);background:var(--card)}
@@ -263,6 +282,7 @@ figcaption{font-size:14px;color:var(--muted);line-height:1.6}
 @media (max-width:700px){
   :root{--w:calc(100% - 36px)}
   .steps{grid-template-columns:1fr}
+  .points{grid-template-columns:1fr}
   .features ul{grid-template-columns:1fr}
   .roadmap ol{grid-template-columns:1fr}
   .xbtn{width:23px;height:23px}
@@ -530,6 +550,88 @@ figcaption{font-size:14px;color:var(--muted);line-height:1.6}
             <p><span class="bi"><span class="zh">无网络请求、无上传、无遥测;贴图也不会出现在下一次截图里。</span><span class="en">No network requests, no uploads, no telemetry — and pins never appear in your next screenshot.</span></span></p>
           </li>
         </ul>
+      </div>
+    </section>
+
+    <!-- ================= WHY / COMPARE ================= -->
+    <section class="compare" data-screen-label="compare">
+      <div class="wrap">
+        <div class="sec-head">
+          <h2><span class="bi"><span class="zh">贴图,不止「浮在上面」。</span><span class="en">Pins that actually stay put.</span></span></h2>
+          <p class="sec-sub"><span class="bi"><span class="zh">很多工具的贴图是临时浮窗:退出就没了。StickySnap 把「留得住、不添乱」当成底线:重启能恢复、不进截图、可以点穿。</span><span class="en">For most tools a pin is a temporary floating window — gone on exit. StickySnap treats persistence, capture exclusion and click-through as the baseline.</span></span></p>
+        </div>
+
+        <div class="points">
+          <article class="point">
+            <span class="f-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3.5h5l-.7 4.2 2.7 3.3H7.5l2.7-3.3L9.5 3.5Z"></path><path d="M12 11v9"></path></svg></span>
+            <h3><span class="bi"><span class="zh">持久化贴图</span><span class="en">Pins persist</span></span></h3>
+            <p><span class="bi"><span class="zh">图片与位置落盘保存,重启电脑、资源管理器崩溃重来,贴图都回到原位。</span><span class="en">Image and position are written to disk, so every pin comes back exactly where you left it — even after a reboot.</span></span></p>
+          </article>
+          <article class="point">
+            <span class="f-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="11.5" rx="1.5"></rect><path d="M9.5 20h5"></path><path d="M12 16.5V20"></path></svg></span>
+            <h3><span class="bi"><span class="zh">贴图不进截图</span><span class="en">Pins stay out of shots</span></span></h3>
+            <p><span class="bi"><span class="zh">贴图窗口对截图接口隐藏(WDA_EXCLUDEFROMCAPTURE):截图里只有你要的内容,不会多出一层参考图。</span><span class="en">Pins are hidden from capture APIs (WDA_EXCLUDEFROMCAPTURE), so your next screenshot holds only what you meant to capture.</span></span></p>
+          </article>
+          <article class="point">
+            <span class="f-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4.5 18.5 11 12.5 12.5 10.5 19 5 4.5Z"></path><path d="M13 13l5 5"></path></svg></span>
+            <h3><span class="bi"><span class="zh">点穿</span><span class="en">Click-through</span></span></h3>
+            <p><span class="bi"><span class="zh">右键一键鼠标穿透,贴图变成只看不挡的参考层;托盘菜单还能一次「取消所有穿透」。</span><span class="en">One right-click makes a pin click-through — a reference layer that never blocks your work. Clear them all at once from the tray.</span></span></p>
+          </article>
+        </div>
+
+        <div class="cmp-card">
+          <div class="cmp-scroll">
+            <table class="cmp-table">
+              <thead>
+                <tr>
+                  <th><span class="bi"><span class="zh">能力</span><span class="en">Capability</span></span></th>
+                  <th class="self">StickySnap</th>
+                  <th>Snipaste</th>
+                  <th>PixPin</th>
+                  <th>ShareX</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="bi"><span class="zh">重启后贴图还在</span><span class="en">Pins survive restart</span></span></td>
+                  <td class="self"><span class="cmp-y">✓</span></td>
+                  <td><span class="cmp-x">✕</span></td>
+                  <td><span class="cmp-x">✕</span></td>
+                  <td><span class="cmp-x">✕</span></td>
+                </tr>
+                <tr>
+                  <td><span class="bi"><span class="zh">贴图不进截图</span><span class="en">Pins excluded from capture</span></span></td>
+                  <td class="self"><span class="cmp-y">✓</span></td>
+                  <td><span class="cmp-na">—</span></td>
+                  <td><span class="cmp-na">—</span></td>
+                  <td><span class="cmp-na">—</span></td>
+                </tr>
+                <tr>
+                  <td><span class="bi"><span class="zh">点穿</span><span class="en">Click-through</span></span></td>
+                  <td class="self"><span class="cmp-y">✓</span></td>
+                  <td><span class="cmp-y">✓</span></td>
+                  <td><span class="cmp-y">✓</span></td>
+                  <td><span class="cmp-na">—</span></td>
+                </tr>
+                <tr>
+                  <td><span class="bi"><span class="zh">长截图</span><span class="en">Scrolling capture</span></span></td>
+                  <td class="self"><span class="cmp-x">✕</span></td>
+                  <td><span class="cmp-x">✕</span></td>
+                  <td><span class="cmp-y">✓</span></td>
+                  <td><span class="cmp-y">✓</span></td>
+                </tr>
+                <tr>
+                  <td><span class="bi"><span class="zh">OCR</span><span class="en">OCR</span></span></td>
+                  <td class="self"><span class="cmp-x">✕</span></td>
+                  <td><span class="cmp-na">—</span></td>
+                  <td><span class="cmp-y">✓</span></td>
+                  <td><span class="cmp-na">—</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <p class="cmp-legend"><span class="bi"><span class="zh">「—」= 未确认或不适用;竞品能力以各家官方版本为准。</span><span class="en">"—" = unverified or not applicable; competitor capabilities follow their official releases.</span></span></p>
       </div>
     </section>
 

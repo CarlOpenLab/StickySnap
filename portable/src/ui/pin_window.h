@@ -7,6 +7,8 @@
 
 #include "core/session_store.h"
 
+class QEnterEvent;
+
 namespace sticky::ui {
 
 // A borderless always-on-top image pinned to the desktop.
@@ -36,6 +38,8 @@ class PinWindow : public QWidget {
 
  protected:
   void paintEvent(QPaintEvent* event) override;
+  void enterEvent(QEnterEvent* event) override;
+  void leaveEvent(QEvent* event) override;
   void mousePressEvent(QMouseEvent* event) override;
   void mouseMoveEvent(QMouseEvent* event) override;
   void mouseReleaseEvent(QMouseEvent* event) override;
@@ -61,6 +65,7 @@ class PinWindow : public QWidget {
   bool overlayMode_ = false;
   bool nativeConfigured_ = false;
   bool dragging_ = false;
+  bool hovered_ = false;
   QPoint dragOffset_;
 };
 

@@ -27,6 +27,10 @@ class PinWindow {
   PinSession Session() const;
   // 截图期间贴图被临时设为鼠标穿透，结束后按自身 pass_ 状态恢复
   void RestoreExStyle();
+  // 全局边框开关（默认 true），同时作用于之后创建和已存在的贴图窗口
+  static void SetBorderEnabled(bool on);
+  // 供 PinManager 统一复位/恢复穿透，不暴露内部 SetPass
+  void SetPassThrough(bool on) { SetPass(on); }
 
   HWND hwnd() const { return hwnd_; }
 
@@ -37,6 +41,8 @@ class PinWindow {
 
   static LRESULT CALLBACK WndProcStatic(HWND, UINT, WPARAM, LPARAM);
   LRESULT Handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);
+  // 边框开关变化时遍历已有贴图窗口：复位悬停状态并重绘
+  static BOOL CALLBACK ResetHoverProc(HWND hwnd, LPARAM lp);
 
   void ApplyZoom();
   void SetPass(bool on);
@@ -51,6 +57,8 @@ class PinWindow {
   int alpha_ = 255;
   bool pass_ = false;
   bool dragging_ = false;
+  bool hover_ = false;     // 鼠标是否在窗口内（边框内圈换强调色）
+  bool tracking_ = false;  // 是否已注册 TrackMouseEvent 的离开通知
   POINT drag_off_{};
   std::wstring img_path_;
 };

@@ -34,6 +34,11 @@ inline constexpr WORD kCmdShot   = 100;
 inline constexpr WORD kCmdPaste  = 101;
 inline constexpr WORD kCmdConfig = 102;
 inline constexpr WORD kCmdQuit   = 103;
+inline constexpr WORD kCmdResetPass = 104;  // 取消所有贴图的鼠标穿透
+inline constexpr WORD kCmdSettings  = 105;  // 设置对话框
+inline constexpr WORD kCmdAutostart = 106;  // 开机自启开关
+inline constexpr WORD kCmdLog       = 107;  // 打开运行日志
+inline constexpr WORD kCmdAbout     = 108;  // 关于
 
 // 贴图右键菜单命令 ID
 inline constexpr WORD kPinMenuPass = 200;
