@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/app-icon.png" width="112" alt="StickySnap logo">
+<img src="assets/logo-mark.png" width="128" alt="StickySnap logo">
 
 # StickySnap
 

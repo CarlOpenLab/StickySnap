@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Generate every StickySnap brand asset from assets/logo.png.
 
-The source PNG stays the single source of truth. The script removes the
-outer white background (keeping the white gap inside the frame), builds a
-rounded app-icon tile, and writes the Windows/macOS/web sizes used by the
-app, README and landing page.
+The source PNG stays the single source of truth; on first run its baked-in
+backdrop is cut out and the transparent result is written back, so later
+runs are idempotent. The script keeps the white gap inside the frame,
+builds a rounded app-icon tile, and writes the Windows/macOS/web sizes used
+by the app, README and landing page.
 
 Usage: python3 tools/make_brand_assets.py
 Requires: Pillow (and macOS `iconutil` for the .icns file).
@@ -12,12 +13,13 @@ Requires: Pillow (and macOS `iconutil` for the .icns file).
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import tempfile
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
 SOURCE = ROOT / "assets" / "logo.png"
@@ -29,30 +31,67 @@ BORDER = (15, 23, 42, 28)
 SHADOW = (15, 23, 42, 70)
 
 
-def _near_white(pixel: tuple[int, int, int], threshold: int = 24) -> bool:
-    return all(channel >= 255 - threshold for channel in pixel)
-
-
 def cut_out_background(image: Image.Image) -> Image.Image:
-    """Make the exterior white background transparent.
+    """Make the exterior backdrop transparent, keeping enclosed whites opaque.
 
-    Flood-filling from the four corners keeps the white margin between the
-    frame and the photo opaque, because that area is enclosed by the frame.
+    Flood-filling from the four corners only removes the connected backdrop,
+    so the white margin inside the frame survives. The cut rim is feathered:
+    alpha is estimated from each pixel's distance to the backdrop relative to
+    the local foreground distance, and the matte color is unpremultiplied out
+    so no light halo remains on dark surfaces. Already-transparent sources
+    pass through untouched.
     """
-    rgb = image.convert("RGB")
-    width, height = rgb.size
-    for seed in ((0, 0), (width - 1, 0), (0, height - 1), (width - 1, height - 1)):
-        if _near_white(rgb.getpixel(seed)):
-            ImageDraw.floodfill(rgb, seed, (255, 0, 255), thresh=24)
+    rgba = image.convert("RGBA")
+    width, height = rgba.size
+    corners = ((0, 0), (width - 1, 0), (0, height - 1), (width - 1, height - 1))
+    if all(rgba.getpixel(c)[3] == 0 for c in corners):
+        return rgba
 
-    rgba = rgb.convert("RGBA")
-    pixels = rgba.load()
+    rgb = rgba.convert("RGB")
+    bg = tuple(
+        round(sum(rgb.getpixel(c)[ch] for c in corners) / len(corners))
+        for ch in range(3)
+    )
+    for seed in corners:
+        ImageDraw.floodfill(rgb, seed, (255, 0, 255), thresh=40)
+
+    r, g, b = rgb.split()
+    removed = ImageChops.logical_and(
+        ImageChops.logical_and(
+            r.point(lambda v: 255 if v == 255 else 0).convert("1"),
+            g.point(lambda v: 255 if v == 0 else 0).convert("1"),
+        ),
+        b.point(lambda v: 255 if v == 255 else 0).convert("1"),
+    ).convert("L")
+    band = ImageChops.subtract(removed.filter(ImageFilter.MaxFilter(7)), removed)
+
+    diff = ImageChops.difference(rgb, Image.new("RGB", (width, height), bg))
+    dr, dg, db = diff.split()
+    dist = ImageChops.add(ImageChops.add(dr, dg), db)
+    local_fg = dist.filter(ImageFilter.MaxFilter(5))
+
+    out = rgba.copy()
+    px = out.load()
+    src = rgb.load()
+    rp = removed.load()
+    bp = band.load()
+    dp = dist.load()
+    fp = local_fg.load()
     for y in range(height):
         for x in range(width):
-            r, g, b, _ = pixels[x, y]
-            if (r, g, b) == (255, 0, 255):
-                pixels[x, y] = (0, 0, 0, 0)
-    return rgba
+            if rp[x, y]:
+                px[x, y] = (0, 0, 0, 0)
+            elif bp[x, y]:
+                a = min(255, round(dp[x, y] * 255 / max(fp[x, y], 1)))
+                if a == 0:
+                    px[x, y] = (0, 0, 0, 0)
+                    continue
+                t = a / 255
+                px[x, y] = tuple(
+                    min(255, max(0, round((src[x, y][ch] - (1 - t) * bg[ch]) / t)))
+                    for ch in range(3)
+                ) + (a,)
+    return out
 
 
 def vertical_gradient(size: int, top: tuple[int, int, int],
@@ -163,16 +202,21 @@ def save_icns(image: Image.Image, path: Path) -> None:
 
 
 def load_font(size: int, *, bold: bool = False, cjk: bool = False) -> ImageFont.FreeTypeFont:
+    win_fonts = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts"
     if cjk:
         candidates = [
             "/System/Library/Fonts/STHeiti Medium.ttc",
             "/System/Library/Fonts/Hiragino Sans GB.ttc",
+            str(win_fonts / "msyh.ttc"),
+            str(win_fonts / "simsun.ttc"),
         ]
     else:
         candidates = [
             "/System/Library/Fonts/Supplemental/Arial Bold.ttf" if bold
             else "/System/Library/Fonts/Supplemental/Arial.ttf",
             "/System/Library/Fonts/Helvetica.ttc",
+            str(win_fonts / ("arialbd.ttf" if bold else "arial.ttf")),
+            str(win_fonts / ("segoeuib.ttf" if bold else "segoeui.ttf")),
         ]
     for candidate in candidates:
         if Path(candidate).exists():
@@ -248,11 +292,12 @@ def main() -> None:
         raise SystemExit(f"missing source logo: {SOURCE}")
 
     source = Image.open(SOURCE)
-    mark = cut_out_background(source)
-    bbox = mark.getbbox()
+    clean = cut_out_background(source)
+    clean.save(SOURCE, optimize=True)
+    bbox = clean.getbbox()
     if bbox is None:
         raise SystemExit("the source logo has no visible content")
-    mark = mark.crop(bbox)
+    mark = clean.crop(bbox)
     mark.save(ROOT / "assets" / "logo-mark.png", optimize=True)
 
     app_icon = make_icon(mark)
