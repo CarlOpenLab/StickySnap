@@ -22,7 +22,7 @@ constexpr int kSepW = 9;       // 分隔线占位（1px + 两侧 4px margin）
 constexpr int kPad = 4;        // .xrow padding（4.5 取整）
 constexpr int kRow1Y = 4;      // 第一行 y
 constexpr int kSwatch = 13;    // 色板圆直径（落地页 .cdot 13x13）
-constexpr int kWidthBtn = 22;  // 粗细档命中区
+constexpr int kWidthBtn = 20;  // 粗细档命中区
 
 constexpr COLORREF kBg = RGB(0x16, 0x1A, 0x22);      // 落地页 .xrow bg #161A22
 constexpr COLORREF kBorder = RGB(43, 46, 53);        // 白 9% 线（.xrow border）
@@ -192,14 +192,12 @@ void ToolbarWindow::Layout() {
     rects_.push_back(RECT{x2, row2_y, x2 + kSwatch, row2_y + kSwatch});
     x2 += kSwatch + 5;
   }
-  int wr = row1_right;
-  for (int i = kWidthCount - 1; i >= 0; --i) {
-    const int d = kDotDiam[i];
-    wr -= d;
+  // 粗细档：白色圆点递增（4/7/10），紧随色板左对齐（与 Qt 版一致）
+  int wx = x2 - 5 + kSepW;  // 末位色板右缘 + 分隔占位（同第一行 kSepW）
+  for (int i = 0; i < kWidthCount; ++i) {
     ids_.push_back(300 + i);
-    rects_.push_back(RECT{wr - 3, row2_y + (kSwatch - d) / 2, wr + 3,
-                          row2_y + (kSwatch - d) / 2 + d + 3});
-    wr -= 7;
+    rects_.push_back(RECT{wx, row2_y - 1, wx + kWidthBtn, row2_y + 15});
+    wx += kWidthBtn + 3;
   }
 
   size_.cx = row1_w;
@@ -348,8 +346,8 @@ void ToolbarWindow::Draw(HDC screen_dc) {
         (is_width && state_->width == id - 300);
     const bool hover = hover_ == static_cast<int>(i);
 
-    // 按钮底色：常态不画框（更干净），悬停浅灰、激活主题色
-    if (!is_color && (active || hover)) {
+    // 按钮底色：常态不画框（更干净），悬停浅灰、激活主题色；色板/圆点除外
+    if (!is_color && !is_width && (active || hover)) {
       // 6px 圆角底（对齐落地页小件圆角体系）
       const COLORREF fill = active ? state_->accent : kBtnHover;
       HBRUSH b = CreateSolidBrush(fill);
@@ -381,24 +379,24 @@ void ToolbarWindow::Draw(HDC screen_dc) {
         g.DrawEllipse(&ring, Gdiplus::RectF(ccx - 9.0f, ccy - 9.0f, 18.0f, 18.0f));
       }
     } else if (is_width) {
-      // 粗细档位（.wdot 5/8/12；选中 = 白圈）
-      const int wi = id - 300;
+      // 粗细档位：常态白点，选中 = 品牌蓝点，悬停 = 45% 白圈预览
       const float ccx = (r.left + r.right) / 2.0f;
       const float ccy = (r.top + r.bottom) / 2.0f;
-      const float d = static_cast<float>(kDotDiam[wi]);
+      const float d = static_cast<float>(kDotDiam[id - 300]);
       Gdiplus::Graphics g(dc);
       g.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
-      Gdiplus::SolidBrush br(Gdiplus::Color(255, 199, 205, 216));
-      g.FillEllipse(&br, Gdiplus::RectF(ccx - d / 2, ccy - d / 2, d, d));
-      if (active) {
-        Gdiplus::Pen ring(Gdiplus::Color(255, 255, 255, 255), 2.0f);
-        g.DrawEllipse(&ring, Gdiplus::RectF(ccx - d / 2 - 2.5f, ccy - d / 2 - 2.5f,
-                                            d + 5.0f, d + 5.0f));
-      } else if (hover) {  // 悬停：45% 白圈预览
+      if (hover && !active) {
+        const float rr = d / 2 + 3.5f;
         Gdiplus::Pen ring(Gdiplus::Color(115, 255, 255, 255), 2.0f);
-        g.DrawEllipse(&ring, Gdiplus::RectF(ccx - d / 2 - 2.5f, ccy - d / 2 - 2.5f,
-                                            d + 5.0f, d + 5.0f));
+        g.DrawEllipse(&ring, Gdiplus::RectF(ccx - rr, ccy - rr, rr * 2, rr * 2));
       }
+      const Gdiplus::Color dot = active
+          ? Gdiplus::Color(255, GetRValue(state_->accent),
+                           GetGValue(state_->accent),
+                           GetBValue(state_->accent))
+          : Gdiplus::Color(255, 232, 234, 237);
+      Gdiplus::SolidBrush br(dot);
+      g.FillEllipse(&br, Gdiplus::RectF(ccx - d / 2, ccy - d / 2, d, d));
     } else if (g_strip_normal && g_strip_active) {
       // Lucide 资源图标：常态灰色不透明，悬停/激活白色
       DrawIconCell(dc, IconCellForId(id), (r.left + r.right) / 2,

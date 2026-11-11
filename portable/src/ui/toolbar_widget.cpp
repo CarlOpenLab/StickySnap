@@ -37,6 +37,7 @@ const QColor kPanelColor(0x16, 0x1A, 0x22);
 const QColor kPanelBorder(255, 255, 255, 23);
 const QColor kSeparatorColor(255, 255, 255, 31);
 const QColor kIconColor(0xC7, 0xCD, 0xD8);
+const QColor kDotColor(0xE8, 0xEA, 0xED);
 const QColor kHoverColor(255, 255, 255, 16);
 
 }  // namespace
@@ -249,14 +250,15 @@ void ToolbarWidget::paintButton(QPainter& painter, const Button& button,
   }
 
   if (button.kind == Kind::Width) {
+    // 粗细档位：常态白点，选中 = 品牌蓝点，悬停 = 45% 白圈预览
     const qreal radius = core::kDotDiameters[button.id] / 2.0;
-    if (selected) {
-      painter.setPen(QPen(Qt::white, 2));
+    if (hovered && !selected) {
+      painter.setPen(QPen(QColor(255, 255, 255, 115), 2));
       painter.setBrush(Qt::NoBrush);
-      painter.drawEllipse(center, radius + 2.5, radius + 2.5);
+      painter.drawEllipse(center, radius + 3.5, radius + 3.5);
     }
     painter.setPen(Qt::NoPen);
-    painter.setBrush(kIconColor);
+    painter.setBrush(selected ? accent_ : kDotColor);
     painter.drawEllipse(center, radius, radius);
     return;
   }

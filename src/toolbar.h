@@ -39,7 +39,7 @@ constexpr COLORREF kPalette[kColorCount] = {
 
 constexpr int kWidthCount = 3;
 constexpr int kWidths[kWidthCount] = {2, 4, 7};  // 标注线宽 px
-constexpr int kDotDiam[kWidthCount] = {5, 8, 12};  // 粗细档圆点直径（.wdot）
+constexpr int kDotDiam[kWidthCount] = {4, 7, 10};  // 粗细档圆点直径（.wdot）
 
 // ---------- 工具栏窗口 ----------
 // 选区完成后浮在选区旁的图标工具栏（无激活、置顶、自绘）

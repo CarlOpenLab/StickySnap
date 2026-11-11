@@ -12,7 +12,7 @@ inline constexpr QRgb kPaletteRgb[9] = {
 };
 
 inline constexpr int kLineWidths[3] = {2, 4, 7};
-inline constexpr int kDotDiameters[3] = {5, 8, 12};
+inline constexpr int kDotDiameters[3] = {4, 7, 10};
 
 inline QColor paletteColor(int index) {
   if (index < 0 || index >= 9) index = 4;
