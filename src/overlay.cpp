@@ -25,10 +25,10 @@ void Shape::Offset(int dx, int dy) {
 
 namespace {
 
-// 选区边框固定高对比红，与品牌强调色分离
+// 选区边框使用品牌蓝（config::kSelection）
 constexpr COLORREF kSelAccent = config::kSelection;
 constexpr COLORREF kSelAccentDark = config::kSelectionDark;
-constexpr COLORREF kHoverAccent = RGB(0x38, 0xE1, 0xCF);  // 落地页 --accent-2 青（与选区红/蓝区分语义）
+constexpr COLORREF kHoverAccent = RGB(0x38, 0xE1, 0xCF);  // 落地页 --accent-2 青（与选区蓝区分语义）
 
 constexpr DWORD kMagic = 0x00FF00FF;  // ARGB 画布透明键（品红，不在调色板中）
 
@@ -400,8 +400,8 @@ LRESULT OverlayWindow::Handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             if (s.type == ShapeType::kMosaic)
               DrawMosaicShape(comp, s, POINT{0, 0}, mosaic_dc_, dst);
         }
-        // 3) 标注层（荧光笔在下、实心形状在上）
-        if (EnsureCanvases()) {
+        // 3) 标注层（荧光笔在下、实心形状在上；无标注不建画布）
+        if ((has_solid || has_marker) && EnsureCanvases()) {
           if (has_marker)
             DrawLayer(comp, canvas_m_, canvas_m_dc_, sel_.left, sel_.top, w2, h2);
           if (has_solid)
@@ -438,7 +438,7 @@ LRESULT OverlayWindow::Handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
           DeleteObject(dotBr);
           DeleteObject(dotPen);
         }
-        if (selecting_) DrawSizeLabel(comp);
+        if (selecting_ || seldrag_ != SelDrag::kNone) DrawSizeLabel(comp);
       } else if (!selecting_ && hover_valid_) {
         FillRing(comp, hover_rect_, 0, 2, kHoverAccent);
       }
@@ -452,6 +452,32 @@ LRESULT OverlayWindow::Handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
     case WM_MOUSEMOVE: {
       POINT p{GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
+      if (seldrag_ != SelDrag::kNone) {
+        cursor_ = p;
+        const RECT old_sel = sel_;
+        ApplySelDrag(p);
+        RECT u;
+        UnionRect(&u, &old_sel, &sel_);
+        InflateRect(&u, 8, 48);  // 含边框手柄与尺寸标签
+        InvalidateRect(hwnd_, &u, FALSE);
+        return 0;
+      }
+      if (repick_pending_) {
+        cursor_ = p;
+        // 拖动超阈值才确认重选；原地松开则保持原选区与标注
+        if (abs(p.x - drag_anchor_.x) > 4 || abs(p.y - drag_anchor_.y) > 4) {
+          repick_pending_ = false;
+          if (toolbar_ && toolbar_->visible()) toolbar_->Hide();
+          ResetEdit();
+          selecting_ = true;
+          sel_start_ = drag_anchor_;
+          sel_ = {drag_anchor_.x, drag_anchor_.y, drag_anchor_.x,
+                  drag_anchor_.y};
+          hover_valid_ = false;
+          InvalidateRect(hwnd_, nullptr, FALSE);
+        }
+        return 0;
+      }
       if (drawing_) {
         cursor_ = p;
         if (preview_.type == ShapeType::kPen ||
@@ -503,9 +529,27 @@ LRESULT OverlayWindow::Handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
           preview_.pts.push_back(p);
         return 0;
       }
-      // 已有选区且未激活工具时，选区内部点击不重选（防误触丢标注）
-      if (HasSel() && tstate_.active_tool < 0 && PtInRect(&sel_, p)) return 0;
-      // 选区外 → 重新框选
+      // 未激活工具：手柄/边框 → 调整大小，选区内 → 整体移动
+      if (HasSel() && tstate_.active_tool < 0) {
+        const SelDrag z = HitSelBorder(p);
+        if (z != SelDrag::kNone) {
+          seldrag_ = z;
+          drag_anchor_ = p;
+          drag_applied_ = POINT{0, 0};
+          drag_orig_ = sel_;
+          if (toolbar_ && toolbar_->visible()) toolbar_->Hide();
+          SetCapture(hwnd_);
+          return 0;
+        }
+      }
+      // 已有选区且点在外部：先挂起，拖动超阈值才重选（误触不丢标注）
+      if (HasSel()) {
+        repick_pending_ = true;
+        drag_anchor_ = p;
+        SetCapture(hwnd_);
+        return 0;
+      }
+      // 尚无选区 → 直接框选
       if (toolbar_ && toolbar_->visible()) toolbar_->Hide();
       ResetEdit();
       SetCapture(hwnd_);
@@ -550,6 +594,20 @@ LRESULT OverlayWindow::Handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         InvalidateRect(hwnd_, &r, FALSE);
         return 0;
       }
+      if (seldrag_ != SelDrag::kNone) {
+        seldrag_ = SelDrag::kNone;
+        ReleaseCapture();
+        ShowToolbar();  // 按新选区位置重新摆工具栏
+        RECT r = sel_;
+        InflateRect(&r, 8, 48);
+        InvalidateRect(hwnd_, &r, FALSE);
+        return 0;
+      }
+      if (repick_pending_) {
+        repick_pending_ = false;  // 未拖动：保持原选区与标注
+        ReleaseCapture();
+        return 0;
+      }
       if (!selecting_) return 0;
       ReleaseCapture();
       selecting_ = false;
@@ -564,9 +622,12 @@ LRESULT OverlayWindow::Handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       return 0;
     }
 
-    case WM_LBUTTONDBLCLK:
-      if (HasSel()) Commit();
+    case WM_LBUTTONDBLCLK: {
+      POINT p{GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
+      // 仅选区内部双击贴图；边框/手柄双击不触发（留给调整）
+      if (HasSel() && HitSelBorder(p) == SelDrag::kMove) Commit();
       return 0;
+    }
 
     case WM_KEYDOWN:
       switch (wp) {
@@ -586,6 +647,22 @@ LRESULT OverlayWindow::Handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
           break;
       }
       return 0;
+
+    case WM_SETCURSOR: {
+      if (LOWORD(lp) != HTCLIENT)
+        return DefWindowProcW(hwnd, msg, wp, lp);
+      HCURSOR c = nullptr;
+      if (seldrag_ != SelDrag::kNone) {
+        c = CursorForZone(seldrag_);
+      } else if (selecting_ || drawing_) {
+        c = LoadCursorW(nullptr, IDC_CROSS);
+      } else if (HasSel() && tstate_.active_tool < 0) {
+        c = CursorForZone(HitSelBorder(cursor_));
+      }
+      if (!c) return DefWindowProcW(hwnd, msg, wp, lp);
+      SetCursor(c);
+      return TRUE;
+    }
 
     case WM_NCDESTROY: {
       if (dim_dc_) {
@@ -615,6 +692,105 @@ void OverlayWindow::OnMouseMove(const POINT& pt) {
     sel_.bottom = sel_start_.y < cursor_.y ? cursor_.y : sel_start_.y;
   } else if (!HasSel()) {
     UpdateHover();
+  }
+}
+
+// 命中调整区：边框 ±6px（含外沿一点，方便从外面抓）、角优先，选区内部 = 移动
+OverlayWindow::SelDrag OverlayWindow::HitSelBorder(const POINT& p) const {
+  if (!HasSel()) return SelDrag::kNone;
+  constexpr int kGrip = 6;
+  if (p.x < sel_.left - kGrip || p.x > sel_.right + kGrip ||
+      p.y < sel_.top - kGrip || p.y > sel_.bottom + kGrip)
+    return SelDrag::kNone;
+  const bool near_l = p.x <= sel_.left + kGrip;
+  const bool near_r = p.x >= sel_.right - kGrip;
+  const bool near_t = p.y <= sel_.top + kGrip;
+  const bool near_b = p.y >= sel_.bottom - kGrip;
+  if (near_l && near_t) return SelDrag::kNW;
+  if (near_r && near_t) return SelDrag::kNE;
+  if (near_l && near_b) return SelDrag::kSW;
+  if (near_r && near_b) return SelDrag::kSE;
+  if (near_t) return SelDrag::kN;
+  if (near_b) return SelDrag::kS;
+  if (near_l) return SelDrag::kW;
+  if (near_r) return SelDrag::kE;
+  return PtInRect(&sel_, p) ? SelDrag::kMove : SelDrag::kNone;
+}
+
+// 按调整模式更新选区；整体移动时标注跟随（形状是绝对坐标）
+void OverlayWindow::ApplySelDrag(const POINT& p) {
+  constexpr int kMin = 12;  // 最小边长（保证手柄/尺寸标签可用）
+  const int dx = p.x - drag_anchor_.x;
+  const int dy = p.y - drag_anchor_.y;
+  const int sw = screen_->width();
+  const int sh = screen_->height();
+  RECT r = drag_orig_;
+  switch (seldrag_) {
+    case SelDrag::kMove: {
+      const int mx = util::Clamp(dx, -drag_orig_.left, sw - drag_orig_.right);
+      const int my = util::Clamp(dy, -drag_orig_.top, sh - drag_orig_.bottom);
+      OffsetRect(&r, mx, my);
+      const int incx = mx - drag_applied_.x;
+      const int incy = my - drag_applied_.y;
+      if (incx || incy) {
+        for (auto& s : shapes_) s.Offset(incx, incy);
+        shapes_dirty_ = true;
+        drag_applied_ = POINT{mx, my};
+      }
+      break;
+    }
+    case SelDrag::kNW:
+      r.left = util::Clamp(drag_orig_.left + dx, 0, drag_orig_.right - kMin);
+      r.top = util::Clamp(drag_orig_.top + dy, 0, drag_orig_.bottom - kMin);
+      break;
+    case SelDrag::kN:
+      r.top = util::Clamp(drag_orig_.top + dy, 0, drag_orig_.bottom - kMin);
+      break;
+    case SelDrag::kNE:
+      r.right = util::Clamp(drag_orig_.right + dx, drag_orig_.left + kMin, sw);
+      r.top = util::Clamp(drag_orig_.top + dy, 0, drag_orig_.bottom - kMin);
+      break;
+    case SelDrag::kE:
+      r.right = util::Clamp(drag_orig_.right + dx, drag_orig_.left + kMin, sw);
+      break;
+    case SelDrag::kSE:
+      r.right = util::Clamp(drag_orig_.right + dx, drag_orig_.left + kMin, sw);
+      r.bottom = util::Clamp(drag_orig_.bottom + dy, drag_orig_.top + kMin, sh);
+      break;
+    case SelDrag::kS:
+      r.bottom = util::Clamp(drag_orig_.bottom + dy, drag_orig_.top + kMin, sh);
+      break;
+    case SelDrag::kSW:
+      r.left = util::Clamp(drag_orig_.left + dx, 0, drag_orig_.right - kMin);
+      r.bottom = util::Clamp(drag_orig_.bottom + dy, drag_orig_.top + kMin, sh);
+      break;
+    case SelDrag::kW:
+      r.left = util::Clamp(drag_orig_.left + dx, 0, drag_orig_.right - kMin);
+      break;
+    default:
+      return;
+  }
+  sel_ = r;
+}
+
+HCURSOR OverlayWindow::CursorForZone(SelDrag z) {
+  switch (z) {
+    case SelDrag::kNW:
+    case SelDrag::kSE:
+      return LoadCursorW(nullptr, IDC_SIZENWSE);
+    case SelDrag::kNE:
+    case SelDrag::kSW:
+      return LoadCursorW(nullptr, IDC_SIZENESW);
+    case SelDrag::kN:
+    case SelDrag::kS:
+      return LoadCursorW(nullptr, IDC_SIZENS);
+    case SelDrag::kE:
+    case SelDrag::kW:
+      return LoadCursorW(nullptr, IDC_SIZEWE);
+    case SelDrag::kMove:
+      return LoadCursorW(nullptr, IDC_SIZEALL);
+    default:
+      return nullptr;
   }
 }
 
@@ -860,9 +1036,22 @@ bool OverlayWindow::EnsureCanvases() const {
 }
 
 bool OverlayWindow::EnsureMosaic() const {
-  if (mosaic_) return true;
   const int w = sel_.right - sel_.left;
   const int h = sel_.bottom - sel_.top;
+  if (mosaic_) {
+    // 选区移动/缩放后内容已变，按原点+尺寸判断是否重建
+    BITMAP bm{};
+    GetObject(mosaic_, sizeof(bm), &bm);
+    if (bm.bmWidth == w && bm.bmHeight == h && mosaic_origin_.x == sel_.left &&
+        mosaic_origin_.y == sel_.top)
+      return true;
+    if (mosaic_dc_) {
+      DeleteDC(mosaic_dc_);  // 先删 DC 解除位图选中，否则 DeleteObject 静默失败
+      mosaic_dc_ = nullptr;
+    }
+    DeleteObject(mosaic_);
+    mosaic_ = nullptr;
+  }
   if (w <= 0 || h <= 0 || !screen_->bits()) return false;
 
   BITMAPINFO bi{};
@@ -912,6 +1101,7 @@ bool OverlayWindow::EnsureMosaic() const {
       }
     }
   }
+  mosaic_origin_ = POINT{sel_.left, sel_.top};
   return true;
 }
 

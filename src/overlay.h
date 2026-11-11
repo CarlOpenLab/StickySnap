@@ -62,6 +62,14 @@ class OverlayWindow {
   LRESULT Handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);
   static bool RegisterClass(HINSTANCE inst);
 
+  // ---- 选区调整（手柄/边框拖拽调尺寸，选区内拖动整体移动）----
+  enum class SelDrag {
+    kNone, kMove, kNW, kN, kNE, kE, kSE, kS, kSW, kW,
+  };
+  SelDrag HitSelBorder(const POINT& p) const;   // 命中调整区（含边框±6px 外沿）
+  void ApplySelDrag(const POINT& p);            // 按当前模式更新 sel_ 与标注
+  static HCURSOR CursorForZone(SelDrag z);
+
   void BuildDimLayer();
   void OnMouseMove(const POINT& pt);
   void UpdateHover();
@@ -98,6 +106,11 @@ class OverlayWindow {
   bool selecting_ = false;
   POINT sel_start_{};
   RECT sel_{};  // 客户区坐标（客户区原点 = 虚拟屏幕原点）
+  SelDrag seldrag_ = SelDrag::kNone;   // 进行中的调整/移动
+  POINT drag_anchor_{};                // 按下起点
+  RECT drag_orig_{};                   // 按下时的选区
+  POINT drag_applied_{};               // kMove 时标注已跟随的位移
+  bool repick_pending_ = false;        // 选区外按下：拖动超阈值才重选（防误触）
   bool hover_valid_ = false;
   RECT hover_rect_{};
   POINT cursor_{};
@@ -113,6 +126,7 @@ class OverlayWindow {
   mutable SIZE canvas_size_{};
   mutable HBITMAP mosaic_ = nullptr;      // 选区像素化图
   mutable HDC mosaic_dc_ = nullptr;
+  mutable POINT mosaic_origin_{};         // 已构建时的选区原点（移动/缩放后重建）
   ToolbarWindow* toolbar_ = nullptr;
   ToolbarState tstate_{};
   bool drawing_ = false;                  // 正在绘制笔画

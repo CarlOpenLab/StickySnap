@@ -25,8 +25,30 @@ constexpr int kMagnifierScale = 12;
 constexpr int kMagnifierSize = kMagnifierSamples * kMagnifierScale;
 
 QColor hoverAccent() { return QColor(0x38, 0xE1, 0xCF); }
-// The selection frame keeps a high-contrast red on every brand accent.
-QColor selectionAccent() { return QColor(0xFF, 0x45, 0x3A); }
+// The selection frame uses the brand blue (same accent as the toolbar).
+QColor selectionAccent() { return QColor(0x2F, 0x6F, 0xED); }
+
+Qt::CursorShape cursorForHandle(core::Handle handle) {
+  switch (handle) {
+    case core::Handle::NW:
+    case core::Handle::SE:
+      return Qt::SizeFDiagCursor;
+    case core::Handle::NE:
+    case core::Handle::SW:
+      return Qt::SizeBDiagCursor;
+    case core::Handle::N:
+    case core::Handle::S:
+      return Qt::SizeVerCursor;
+    case core::Handle::E:
+    case core::Handle::W:
+      return Qt::SizeHorCursor;
+    case core::Handle::Move:
+      return Qt::SizeAllCursor;
+    case core::Handle::None:
+      break;
+  }
+  return Qt::CrossCursor;
+}
 
 }  // namespace
 
@@ -188,6 +210,7 @@ void OverlayWindow::paintEvent(QPaintEvent*) {
     painter.setPen(QPen(selectionAccent(), 2));
     painter.setBrush(Qt::NoBrush);
     painter.drawRect(sel.adjusted(0, 0, -1, -1));
+    drawSelectionHandles(painter, sel);
     drawSelectionLabel(painter);
   } else {
     drawHover(painter);
@@ -197,6 +220,24 @@ void OverlayWindow::paintEvent(QPaintEvent*) {
       toolbar_->isVisible() && toolbar_->geometry().contains(cursor_);
   if (cursorValid_ && !overToolbar) drawMagnifier(painter);
   if (!selection_.hasSelection() && !pressing_) drawHint(painter);
+}
+
+// Eight grip dots on the selection border (corners + edge midpoints),
+// matching the Windows reference implementation.
+void OverlayWindow::drawSelectionHandles(QPainter& painter, const QRect& sel) {
+  const int cx = (sel.left() + sel.right()) / 2;
+  const int cy = (sel.top() + sel.bottom()) / 2;
+  const QPoint pts[8] = {
+      sel.topLeft(),  QPoint(cx, sel.top()),    sel.topRight(),
+      QPoint(sel.left(), cy), QPoint(sel.right(), cy),
+      sel.bottomLeft(), QPoint(cx, sel.bottom()), sel.bottomRight(),
+  };
+  painter.save();
+  painter.setRenderHint(QPainter::Antialiasing, true);
+  painter.setPen(QPen(selectionAccent(), 1));
+  painter.setBrush(selectionAccent());
+  for (const QPoint& pt : pts) painter.drawEllipse(pt, 4, 4);
+  painter.restore();
 }
 
 void OverlayWindow::drawHover(QPainter& painter) {
@@ -354,9 +395,9 @@ void OverlayWindow::mousePressEvent(QMouseEvent* event) {
   pressPos_ = event->pos();
   moved_ = false;
 
-  if (selection_.hasSelection() && selection_.isValid() &&
-      selection_.rect().contains(event->pos())) {
-    if (toolbar_->activeTool() >= 0) {
+  if (selection_.hasSelection() && selection_.isValid()) {
+    const bool inside = selection_.rect().contains(event->pos());
+    if (inside && toolbar_->activeTool() >= 0) {
       drawing_ = true;
       const QPoint imagePoint =
           toImagePoint(event->pos()) - selectionImageRect().topLeft();
@@ -364,9 +405,34 @@ void OverlayWindow::mousePressEvent(QMouseEvent* event) {
           static_cast<core::ShapeType>(toolbar_->activeTool()), imagePoint);
       mosaicPreviewCache_ = QImage();
       mosaicPreviewDirty_ = true;
+      update();
+      event->accept();
+      return;
     }
-    // Without an active tool, a click inside the selection keeps it intact.
-    update();
+    if (toolbar_->activeTool() < 0) {
+      // Border/handles resize, inside moves, only when no tool is armed.
+      const core::Handle hit = selection_.handleAt(event->pos());
+      if (hit != core::Handle::None) {
+        if (hit == core::Handle::Move) {
+          selection_.beginMove(event->pos());
+        } else {
+          selection_.beginResize(hit, event->pos());
+        }
+        hideToolbar();
+        setCursor(cursorForHandle(hit));
+        update();
+        event->accept();
+        return;
+      }
+      if (inside) {
+        // Without an active tool, a click inside the selection keeps it intact.
+        update();
+        event->accept();
+        return;
+      }
+    }
+    // Pressed outside: suspend; only a real drag restarts the selection.
+    pendingRepick_ = true;
     event->accept();
     return;
   }
@@ -412,6 +478,34 @@ void OverlayWindow::mouseMoveEvent(QMouseEvent* event) {
     return;
   }
 
+  if (selection_.isAdjusting()) {
+    selection_.dragTo(event->pos(), rect());
+    update();
+    event->accept();
+    return;
+  }
+
+  if (pendingRepick_) {
+    // A real drag restarts the selection; a click in place keeps it.
+    if ((event->pos() - pressPos_).manhattanLength() > 6) {
+      pendingRepick_ = false;
+      annotations_.clear();
+      cacheDirty_ = true;
+      annotatedCache_ = QImage();
+      drawing_ = false;
+      hideToolbar();
+      selection_.begin(pressPos_);
+      pressing_ = true;
+      moved_ = true;  // a confirmed drag must not fall back to click-to-snap
+      hoverRect_ = {};
+      selection_.update(event->pos());
+      setCursor(Qt::CrossCursor);
+    }
+    update();
+    event->accept();
+    return;
+  }
+
   if (pressing_) {
     selection_.update(event->pos());
     if ((event->pos() - pressPos_).manhattanLength() > 2) moved_ = true;
@@ -420,7 +514,12 @@ void OverlayWindow::mouseMoveEvent(QMouseEvent* event) {
     return;
   }
 
-  if (!selection_.hasSelection()) updateHover(event->pos());
+  if (selection_.hasSelection() && toolbar_->activeTool() < 0) {
+    setCursor(cursorForHandle(selection_.handleAt(event->pos())));
+  } else if (!selection_.hasSelection()) {
+    updateHover(event->pos());
+    setCursor(Qt::CrossCursor);
+  }
   update();
   event->accept();
 }
@@ -440,6 +539,22 @@ void OverlayWindow::mouseReleaseEvent(QMouseEvent* event) {
     preview_ = {};
     mosaicPreviewCache_ = QImage();
     mosaicPreviewDirty_ = true;
+    update();
+    event->accept();
+    return;
+  }
+
+  if (selection_.isAdjusting()) {
+    selection_.endAdjust();
+    setCursor(cursorForHandle(selection_.handleAt(event->pos())));
+    if (selection_.isValid()) showToolbar();
+    update();
+    event->accept();
+    return;
+  }
+
+  if (pendingRepick_) {
+    pendingRepick_ = false;  // released in place: keep the old selection
     update();
     event->accept();
     return;
@@ -481,7 +596,8 @@ void OverlayWindow::mouseReleaseEvent(QMouseEvent* event) {
 
 void OverlayWindow::mouseDoubleClickEvent(QMouseEvent* event) {
   if (event->button() == Qt::LeftButton && selection_.isValid() &&
-      toolbar_->activeTool() < 0) {
+      toolbar_->activeTool() < 0 &&
+      selection_.handleAt(event->pos()) == core::Handle::Move) {
     commitSelection();
     event->accept();
     return;

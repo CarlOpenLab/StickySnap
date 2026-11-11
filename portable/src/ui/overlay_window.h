@@ -65,6 +65,7 @@ class OverlayWindow : public QWidget {
   void drawMagnifier(QPainter& painter);
   void drawHint(QPainter& painter);
   void drawSelectionLabel(QPainter& painter);
+  void drawSelectionHandles(QPainter& painter, const QRect& sel);
   void drawPreview(QPainter& painter);
   void drawHover(QPainter& painter);
   void drawLabel(QPainter& painter, const QPoint& topLeft, const QString& text,
@@ -84,6 +85,8 @@ class OverlayWindow : public QWidget {
   QPoint pressPos_;
   bool pressing_ = false;
   bool moved_ = false;
+  bool pendingRepick_ = false;  // pressed outside the selection; a drag past
+                                // the threshold restarts the selection
   bool drawing_ = false;
   core::Shape preview_;
   QImage mosaicPreviewCache_;
