@@ -115,6 +115,12 @@ if(WIN32)
   set_target_properties(StickySnap PROPERTIES WIN32_EXECUTABLE TRUE)
   target_compile_definitions(StickySnap PRIVATE
     NOMINMAX WIN32_LEAN_AND_MEAN UNICODE _UNICODE)
+  # 嵌入品牌图标与版本信息（explorer / 快捷方式显示的图标来源）
+  enable_language(RC)
+  string(REGEX REPLACE "\\." "," STICKYSNAP_RC_VERSION "${STICKYSNAP_VERSION}")
+  set(STICKYSNAP_ICO_PATH "${CMAKE_CURRENT_SOURCE_DIR}/resources/app-icon.ico")
+  configure_file(resources/app-icon.rc.in "${CMAKE_CURRENT_BINARY_DIR}/app-icon.rc" @ONLY)
+  target_sources(StickySnap PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/app-icon.rc")
   target_link_libraries(StickySnap PRIVATE
     user32 gdi32 shell32 dwmapi advapi32 uiautomationcore)
   if(STICKYSNAP_HAVE_OCR)

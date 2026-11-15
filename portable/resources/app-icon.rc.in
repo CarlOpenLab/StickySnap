@@ -1,0 +1,25 @@
+// Windows 资源：应用图标 + 版本信息（版本由 CMake 从 STICKYSNAP_VERSION 注入）。
+IDI_ICON1 ICON "@STICKYSNAP_ICO_PATH@"
+
+1 VERSIONINFO
+FILEVERSION @STICKYSNAP_RC_VERSION@,0
+PRODUCTVERSION @STICKYSNAP_RC_VERSION@,0
+FILEOS 0x40004L
+FILETYPE 0x1L
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "080404B0"
+    BEGIN
+      VALUE "CompanyName", "CarlOpenLab"
+      VALUE "FileDescription", "StickySnap"
+      VALUE "FileVersion", "@STICKYSNAP_VERSION@"
+      VALUE "ProductName", "StickySnap"
+      VALUE "ProductVersion", "@STICKYSNAP_VERSION@"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x804, 1200
+  END
+END
