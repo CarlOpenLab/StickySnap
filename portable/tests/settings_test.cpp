@@ -34,7 +34,7 @@ void SettingsTest::missingFileYieldsDefaults() {
   QCOMPARE(settings.hotkeyShot, QKeySequence(Qt::Key_F1));
 #endif
   QCOMPARE(settings.hotkeyPin, QKeySequence(Qt::Key_F3));
-  QCOMPARE(settings.dimPercent, 30);
+  QCOMPARE(settings.dimPercent, 55);
   QVERIFY(error.isEmpty());
 }
 
@@ -67,12 +67,16 @@ void SettingsTest::parsesAllKeys() {
                      "accent=#123abc\n"
                      "hotkey_shot=F5\n"
                      "hotkey_pin=F9\n"
-                     "dim_opacity=70\n"));
+                     "dim_opacity=70\n"
+                     "pin_border=0\n"
+                     "autostart=1\n"));
 
   QCOMPARE(settings.accent, QColor(QStringLiteral("#123ABC")));
   QCOMPARE(settings.hotkeyShot, QKeySequence(Qt::Key_F5));
   QCOMPARE(settings.hotkeyPin, QKeySequence(Qt::Key_F9));
   QCOMPARE(settings.dimPercent, 70);
+  QCOMPARE(settings.pinBorder, false);
+  QCOMPARE(settings.autostart, true);
 }
 
 void SettingsTest::invalidValuesFallBackToDefaults() {
@@ -95,6 +99,9 @@ void SettingsTest::serializeRoundTrips() {
   original.hotkeyShot = QKeySequence(Qt::Key_F7);
   original.hotkeyPin = QKeySequence(Qt::Key_F8);
   original.dimPercent = 80;
+  original.pinBorder = false;
+  original.autostart = true;
+  original.elementSnap = true;
 
   const Settings parsed = SettingsStore::parse(SettingsStore::serialize(original));
 
@@ -102,6 +109,9 @@ void SettingsTest::serializeRoundTrips() {
   QCOMPARE(parsed.hotkeyShot, original.hotkeyShot);
   QCOMPARE(parsed.hotkeyPin, original.hotkeyPin);
   QCOMPARE(parsed.dimPercent, original.dimPercent);
+  QCOMPARE(parsed.pinBorder, original.pinBorder);
+  QCOMPARE(parsed.autostart, original.autostart);
+  QCOMPARE(parsed.elementSnap, original.elementSnap);
 }
 
 void SettingsTest::saveWritesReadableFile() {

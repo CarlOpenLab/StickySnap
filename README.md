@@ -37,33 +37,38 @@ StickySnap 是一个把「贴图」当作第一优先级刚需的截图工具。
 
 | 平台 | 实现 | 状态 |
 |---|---|---|
-| Windows 10/11 x64 | C++17 / Win32 | ✅ M0 主力版本，功能最完整 |
-| macOS 14+ | C++20 / Qt 6.5+ | 🚧 Qt 预览版，目前从源码构建 |
-| Linux | Qt 6 | ⬜ 规划中 |
+| Windows 10/11 x64 | C++17 / Win32 | ✅ M0 参考实现（冻结，单 exe） |
+| Windows 10+ / macOS 14+ / Linux (X11) | C++20 / Qt 6.8 | ✅ **Qt 全功能版**（CI 自动构建，所有新功能只在这里） |
 
-Qt 预览版与 Windows 版共享同一套选区、标注、设置和会话模型（`portable/src/core`）；Windows 原生版仍是参考实现。
+Qt 版与 Windows 原生版共享同一套选区、标注、设置和会话模型（`portable/src/core`）；Windows 数据目录完全一致（`%APPDATA%\StickySnap`），两种版本可互换使用同一份配置与贴图。
 
 ## 当前状态：M0
 
-| 能力 | Windows 原生 | macOS Qt 预览 |
+| 能力 | Windows 原生（M0 参考实现） | Qt 跨平台版（Windows + macOS + Linux） |
 |---|---|---|
-| 全局热键截图 / 贴剪贴板 | ✅ 默认 `F1` / `F3`，可配置组合键 | ✅ `⌃⌘A` / `F3`，可在设置中修改 |
+| 全局热键截图 / 贴剪贴板 | ✅ 默认 `F1` / `F3`，可配置组合键 | ✅ Windows 默认 `F1` / `F3`，macOS `⌃⌘A` / `F3` |
 | 全屏冻结遮罩选区（多显示器、HiDPI） | ✅ | ✅ |
 | 窗口检测高亮（单击吸附） | ✅ | ✅ |
 | 放大镜 + 十六进制取色 + 尺寸提示 | ✅ | ✅ |
 | Enter/双击贴图，复制、取消、选区微调 | ✅ | ✅ |
 | 贴图窗：置顶、拖动、滚轮缩放、透明度、穿透 | ✅ | ✅ |
-| 贴图常显边框：1px 黑白双层描边，悬停变品牌色 | ✅ | — |
+| 贴图常显边框：1px 黑白双层描边，悬停变品牌色 | ✅ | ✅ |
 | 贴图右键菜单：穿透 / 复制 / 另存为 / 关闭 | ✅ | ✅ |
-| 贴图不进入后续截图 | ✅ | — |
+| 贴图不进入后续截图 | ✅ | ✅ |
 | 标注工具栏（6 种工具 + 撤销 + 4 个动作） | ✅ | ✅ |
 | 标注引擎：矩形/椭圆/箭头/画笔/荧光笔/马赛克，9 色 × 3 粗细，Ctrl+Z 撤销 | ✅ | ✅ |
 | 会话持久化（贴图图片 + 位置自动恢复） | ✅ | ✅ |
 | 托盘：左键单击直接截图，右键菜单 | ✅ | ✅（macOS 菜单栏） |
-| 设置对话框（强调色 / 热键 / 遮罩浓度 / 贴图边框 / 开机自启） | ✅ | — |
-| 开机自启（写当前用户启动项） | ✅ | — |
-| 单元测试（CTest）+ CI 跑测试 | ✅ | ✅（Qt Test） |
-| GIF/APNG 贴图、贴图上标注、标注二次编辑、UI 元素级吸附 | ⬜ M1 | ⬜ M1 |
+| 设置对话框（强调色 / 热键 / 遮罩浓度 / 贴图边框 / 开机自启） | ✅ | ✅ |
+| 开机自启（注册表 Run 键 / SMAppService / XDG autostart） | ✅ | ✅ |
+| 单元测试（CTest）+ CI 跑测试 | ✅ | ✅（Qt Test，三平台 CI 全跑） |
+| 贴图标注 + 二次编辑（侧车 JSON，原图分层保存） | ⬜ 冻结在 M0 | ✅ |
+| GIF/APNG 动图贴图（贴文件 / 剪贴板动图） | ⬜ | ✅ |
+| 文本贴图 / 颜色贴图 | ⬜ | ✅ |
+| 贴图分组 + 单独显示 + 托盘批量管理 | ⬜ | ✅ |
+| OCR 文字识别（选区 / 贴图 → 剪贴板） | ⬜ | ✅ Windows（Windows.Media.Ocr）/ macOS（Vision）；Linux 暂无 |
+| UI 元素级吸附（按钮/输入框级高亮） | ⬜ | ✅ Windows（UIA）/ macOS（AX，需辅助功能授权）；Linux 暂无 |
+| 仅在当前桌面/空间显示 | ⬜ | ✅ macOS（Windows TOPMOST 天然跨桌面，Linux 暂不支持） |
 
 ## 和常见工具对比
 
@@ -75,19 +80,28 @@ Qt 预览版与 Windows 版共享同一套选区、标注、设置和会话模�
 | 贴图不进截图 | ✅ | — | — | — | — |
 | 点穿（鼠标穿透） | ✅ | ✅ | ✅ | — | — |
 | 长截图 | ❌ | ❌ | ✅ | ✅ | ✅ |
-| OCR | ❌ | — | ✅ | — | ✅ |
-| 平台 | Windows（macOS 预览） | Windows / macOS / Linux | Windows / macOS | Windows | macOS |
+| OCR | ✅（Qt 版，Windows/macOS） | — | ✅ | — | ✅ |
+| 平台 | Windows / macOS / Linux（X11） | Windows / macOS / Linux | Windows / macOS | Windows | macOS |
 | 价格 | 免费（MIT 开源） | 免费 / 专业版付费 | 免费 / 会员增值 | 免费开源 | 付费 |
 
 StickySnap 的取舍很明确：**贴图优先**。长截图、OCR 这类能力还没做，就不写进功能表——本仓库只承诺已经能用起来的东西。贴图「重启后还在」「不进截图」「可点穿」三件事，是目前和上面这些工具拉开差距的地方。
 
 ## 下载
 
-- **Windows 体验版**：[Releases](https://github.com/CarlOpenLab/StickySnap/releases)（推送 `v*` tag 后由 CI 自动构建并发布）
-- **Windows CI 产物**：[windows-build](https://github.com/CarlOpenLab/StickySnap/actions/workflows/windows.yml) 每次 push 都会上传 `StickySnap-windows-x64.zip`（需登录 GitHub 下载）
-- **macOS Qt 预览版**：目前从源码构建，见下方「macOS（Qt 6）」。尚未提供签名/公证的安装包。
+推 `v*` tag 后由 [release.yml](.github/workflows/release.yml) 自动构建并在 [Releases](https://github.com/CarlOpenLab/StickySnap/releases) 发布以下资产：
 
-Windows 可执行文件未做代码签名，首次运行若被 SmartScreen 拦截，选择「更多信息 → 仍要运行」。macOS 首次截图需要在「系统设置 → 隐私与安全性 → 屏幕录制」中授权 StickySnap。
+| 资产 | 平台 | 说明 |
+|---|---|---|
+| `StickySnap-windows-qt-x64.zip` | Windows 10+ | **推荐**：Qt 跨平台版（全功能版），解压即用，含 Qt 运行库 |
+| `StickySnap-setup.exe` | Windows 10+ | 同上的安装器（按用户安装，可选桌面快捷方式 / 开机自启） |
+| `StickySnap-windows-x64.zip` | Windows 10+ | 原生 Win32 版（M0 冻结版，单 exe 约 1 MB，无 Qt 依赖） |
+| `StickySnap-macos-universal.zip` | macOS 14+ | Apple Silicon / Intel 通用，解压得到 `StickySnap.app` |
+| `StickySnap-macos.dmg` | macOS 14+ | 同上的 DMG 安装镜像（拖入 Applications） |
+| `StickySnap-linux-x64.tar.gz` | Linux (X11) | 便携包：二进制 + Qt 运行库 + `run.sh`（Wayland 不支持） |
+
+CI 每次推送也会上传 artifact（需登录 GitHub）：[windows-build](https://github.com/CarlOpenLab/StickySnap/actions/workflows/windows.yml)（原生 + Qt 两个包）、[macos-build](https://github.com/CarlOpenLab/StickySnap/actions/workflows/macos.yml)。
+
+Windows 可执行文件未做代码签名，首次运行若被 SmartScreen 拦截，选择「更多信息 → 仍要运行」。macOS 包为 ad-hoc 签名（未公证），解压后若提示「已损坏，无法打开」，在终端执行 `xattr -cr StickySnap.app` 或右键选择「打开」即可；首次截图需要在「系统设置 → 隐私与安全性 → 屏幕录制」中授权 StickySnap。macOS 仍可从源码构建，见下方「macOS（Qt 6）」。
 
 ## 使用
 
@@ -126,6 +140,7 @@ macOS 上功能键若被系统占用，可在「系统设置 → 键盘 → 键�
 | `dim_opacity` | `55` | 截图遮罩变暗百分比，范围 10–90 |
 | `pin_border` | `1` | 贴图常显边框开关（`1` 开 / `0` 关），默认开启 |
 | `autostart` | `0` | 开机自启（写当前用户启动项），默认关闭 |
+| `element_snap` | `0` | UI 元素级吸附（悬停高亮按钮/输入框级控件），默认关闭 |
 
 ```ini
 # %APPDATA%\StickySnap\config.ini（# 开头为注释）
@@ -135,6 +150,7 @@ hotkey_pin=F3
 dim_opacity=55
 pin_border=1
 autostart=0
+element_snap=0
 ```
 
 ## 构建
@@ -174,14 +190,29 @@ ctest --test-dir build-qt --output-on-failure
 open build-qt/StickySnap.app
 ```
 
+### Linux（Qt 6，X11）
+
+需要 X11 开发头、CMake 3.21+ 和 Qt 6.5+（Wayland 不支持）：
+
+```bash
+# Debian/Ubuntu 依赖
+sudo apt install build-essential cmake qt6-base-dev libx11-dev
+cmake -S portable -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
+ctest --test-dir build --output-on-failure
+./build/StickySnap
+```
+
 调试时可用 `--capture` 和 `--pin-clipboard` 参数直接触发截图/贴剪贴板。
 
 ### CI
 
 | 工作流 | 触发 | 作用 |
 |---|---|---|
-| [`windows.yml`](.github/workflows/windows.yml) | push / PR / 手动 | 构建 Windows 版、跑 `ctest` 单元测试并上传 zip artifact |
-| [`release.yml`](.github/workflows/release.yml) | 推送 `v*` tag | 构建并发布 GitHub Release |
+| [`windows.yml`](.github/workflows/windows.yml) | push / PR / 手动 | 构建原生版 + Qt 版（windeployqt），各跑 `ctest` 并上传 artifact |
+| [`macos.yml`](.github/workflows/macos.yml) | push / PR / 手动 | 构建 macOS 版（Qt portable、universal）、跑 Qt Test、macdeployqt + ad-hoc 签名后上传 zip artifact |
+| [`linux.yml`](.github/workflows/linux.yml) | push / PR / 手动 | 构建 Linux (X11) Qt 版、跑 Qt Test、打包便携 tar.gz artifact |
+| [`release.yml`](.github/workflows/release.yml) | 推送 `v*` tag | 构建 Windows（原生 zip + Qt zip + 安装器）、macOS（zip + DMG）、Linux（tar.gz）并发布 Release |
 | [`pages.yml`](.github/workflows/pages.yml) | `site/` 变更 / 手动 | 部署落地页到 GitHub Pages |
 
 ## 架构
@@ -206,8 +237,9 @@ src/                 Windows 原生版（Win32）
 
 portable/            Qt 6 跨平台版
   src/core/          选区模型、标注模型、设置、会话（与 UI 无关）
-  src/ui/            Qt 遮罩窗、工具栏、贴图窗、托盘、设置对话框
-  src/platform/      平台抽象；macOS 已实现（ScreenCaptureKit / Carbon 热键）
+  src/ui/            Qt 遮罩窗、工具栏、贴图窗（标注/动图/文本/颜色）、托盘、设置对话框
+  src/platform/      平台抽象；macOS（ScreenCaptureKit/Carbon/Vision/AX/SMAppService）、
+                     Windows（GDI/UIA/WinRT OCR/注册表自启）、Linux X11（XGrabKey/XShape）三层已实现
   tests/             Qt Test 单元测试与离屏渲染测试
 ```
 
@@ -215,24 +247,28 @@ portable/            Qt 6 跨平台版
 
 - 坐标一律使用**物理像素**（Windows 版声明 Per-Monitor-V2 aware），多屏与 HiDPI 下不串位
 - 贴图图片在创建时即落盘，会话文件只存引用——进程崩溃也不丢贴图
+- 贴图标注以侧车 JSON（`<图片>.annotations.json`）与原图分层存储，支持二次编辑
 
 ## 路线图
 
-- **M0（当前）**：贴图成立的最小集 + M0.6 打磨（边框、热键组合、设置、自启、单测），见上表
-- **M1**：贴图标注、GIF/APNG 动图贴图、文本/颜色贴图、贴图分组、UI 元素级检测（UI Automation）、OCR（Windows.Media.Ocr）、macOS Qt 预览与 Windows 功能对齐
-- **M2**：虚拟桌面绑定、Solo 模式、批量操作、AI 功能（按 PRD）、Linux（Qt 6）
-- **平台**：Windows ✅ → macOS 🚧（Qt 预览）→ Linux ⬜
+- **M0（✅ 已完成）**：贴图成立的最小集 + M0.6 打磨（边框、热键组合、设置、自启、单测），见上表
+- **M1（✅ 已完成，Qt 版）**：贴图标注与二次编辑、GIF/APNG 动图贴图、文本/颜色贴图、贴图分组、OCR（Windows.Media.Ocr / Vision）、UI 元素级吸附（UIA / AX）、macOS 功能对齐（自启、托盘左键）
+- **M2（✅ 部分完成）**：仅在当前桌面显示（macOS）、Solo 模式、批量操作、Linux (X11)；AI 功能与 Wayland 支持待做
+- **平台**：Windows ✅（原生 + Qt）→ macOS ✅（Qt）→ Linux ✅（X11，Qt）
+
+已知限制：Linux 走 X11（Wayland 不支持）；Linux 无 OCR 与元素级吸附（at-spi 集成待做）；Windows 贴图天然跨虚拟桌面（不提供按桌面隐藏）；macOS 包未公证（`xattr -cr` 处理 Gatekeeper）。
 
 详细验收标准见 [docs/PRD-M0.md](docs/PRD-M0.md)。
 
 ## 项目结构
 
 ```
-.github/workflows/   CI：Windows 构建、Release、Pages
+.github/workflows/   CI：Windows / macOS / Linux 构建、Release、Pages
+packaging/           Inno Setup 安装器脚本
 assets/              品牌源图与生成的应用图标
 site/                落地页（GitHub Pages 源目录）
-src/                 Windows 原生版源码
-portable/            Qt 6 跨平台版（macOS 平台层已实现）
+src/                 Windows 原生版源码（M0 冻结参考实现）
+portable/            Qt 6 跨平台版（全功能版，三平台平台层）
 res/                 Windows 图标与工具栏资源
 docs/                产品文档
 test/                手工测试脚本、参考图与 CTest 单元测试

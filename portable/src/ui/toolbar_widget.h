@@ -11,21 +11,26 @@ class QPaintEvent;
 
 namespace sticky::ui {
 
-// Floating Snipaste-style toolbar drawn as a child of the capture overlay.
+// Floating Snipaste-style toolbar drawn as a child of the capture overlay
+// (Overlay mode) or of a pinned window while annotating it (Pin mode).
 // It owns the current tool/color/width selection.
 class ToolbarWidget : public QWidget {
   Q_OBJECT
 
  public:
+  enum Mode { Overlay, Pin };
+
   enum Action {
     kUndo = 100,
     kPin,
     kCopy,
+    kOcr,
     kSave,
     kCancel,
+    kDone,  // Pin mode: finish annotating.
   };
 
-  explicit ToolbarWidget(QWidget* parent = nullptr);
+  explicit ToolbarWidget(Mode mode, QWidget* parent = nullptr);
 
   int activeTool() const { return activeTool_; }
   int colorIndex() const { return colorIndex_; }
@@ -58,8 +63,10 @@ class ToolbarWidget : public QWidget {
     Undo,
     Pin,
     Copy,
+    Text,
     Save,
     Cancel,
+    Check,
   };
 
   struct Button {
@@ -79,6 +86,8 @@ class ToolbarWidget : public QWidget {
 
   QVector<Button> buttons_;
   QVector<QRectF> separators_;
+  Mode mode_ = Overlay;
+  qreal rowOneWidth_ = 351.0;  // Overlay 行宽；Pin 模式由 relayout 重算。
   int activeTool_ = -1;
   int colorIndex_ = 4;
   int widthIndex_ = 1;

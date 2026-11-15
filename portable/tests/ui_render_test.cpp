@@ -142,8 +142,9 @@ void UiRenderTest::overlaySelectionShowsToolbarAndCommits() {
 }
 
 void UiRenderTest::toolbarUsesLandingPageLayout() {
-  ui::ToolbarWidget toolbar;
-  QCOMPARE(toolbar.size(), QSize(351, 79));
+  ui::ToolbarWidget toolbar(ui::ToolbarWidget::Overlay);
+  // 新增 OCR 动作后第一行 5 个动作按钮：6 工具+撤销+5 动作 → 378。
+  QCOMPARE(toolbar.size(), QSize(380, 79));
 
   const QPixmap shot = toolbar.grab();
   QVERIFY(!shot.isNull());
@@ -151,7 +152,7 @@ void UiRenderTest::toolbarUsesLandingPageLayout() {
 }
 
 void UiRenderTest::toolbarHitTargetsFollowLandingPageLayout() {
-  ui::ToolbarWidget toolbar;
+  ui::ToolbarWidget toolbar(ui::ToolbarWidget::Overlay);
   toolbar.show();
   QTest::qWait(10);
 

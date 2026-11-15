@@ -2,6 +2,7 @@
 
 #include <QColor>
 #include <QImage>
+#include <QJsonDocument>
 #include <QPoint>
 #include <QVector>
 
@@ -49,5 +50,10 @@ class AnnotationModel {
 
 // Draws one stroke with the same style flatten() uses (used for live preview).
 void paintShape(QPainter& painter, const Shape& shape);
+
+// 贴图标注的侧车持久化：shape 列表 ↔ JSON（贴图原图与标注分层存储，
+// 这样才能支持二次编辑）。解析失败返回 false 且不改动 model。
+QJsonDocument annotationToJson(const AnnotationModel& model);
+bool annotationFromJson(const QJsonDocument& document, AnnotationModel* model);
 
 }  // namespace sticky::core

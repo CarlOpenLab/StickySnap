@@ -1,4 +1,4 @@
-# StickySnap Release —— 推送 v* tag 时构建并发布 Windows 包
+# StickySnap Release —— 推送 v* tag 时构建并发布 Windows / macOS 包
 name: release
 
 on:
@@ -29,3 +29,158 @@ jobs:
         with:
           files: StickySnap-windows-x64.zip
           generate_release_notes: true
+
+  release-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive version from tag
+        shell: bash
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      - name: Install Qt 6.8
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          target: 'desktop'
+          cache: true
+
+      - name: Configure (universal, macOS 14+)
+        run: cmake -S portable -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DSTICKYSNAP_VERSION=$version
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Deploy Qt frameworks
+        run: macdeployqt build/StickySnap.app
+
+      - name: Codesign (ad-hoc)
+        run: codesign --force --deep --sign - build/StickySnap.app
+
+      - name: Package zip
+        run: ditto -c -k --sequesterRsrc --keepParent build/StickySnap.app StickySnap-macos-universal.zip
+
+      - name: Package DMG
+        run: |
+          mkdir dmg-staging
+          cp -R build/StickySnap.app dmg-staging/
+          ln -s /Applications dmg-staging/Applications
+          hdiutil create -volname StickySnap -srcfolder dmg-staging -ov -format UDZO StickySnap-macos.dmg
+
+      # generate_release_notes 由 release-windows 生成，此处只追加资产
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            StickySnap-macos-universal.zip
+            StickySnap-macos.dmg
+
+  # Qt portable 全功能版：portable zip + Inno Setup 安装器
+  release-windows-qt:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive version from tag
+        shell: pwsh
+        run: "echo \"version=$($env:GITHUB_REF_NAME.Substring(1))\" >> $env:GITHUB_ENV"
+
+      - name: Install Qt 6.8
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          target: 'desktop'
+          cache: true
+
+      - name: Configure
+        shell: pwsh
+        run: cmake -S portable -B build-qt -DCMAKE_BUILD_TYPE=Release -DSTICKYSNAP_VERSION=$env:version
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build build-qt --config Release
+
+      - name: Test
+        shell: pwsh
+        run: ctest --test-dir build-qt -C Release --output-on-failure
+
+      - name: Deploy Qt runtime
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path build-qt/deploy | Out-Null
+          Copy-Item build-qt/Release/StickySnap.exe build-qt/deploy/
+          Copy-Item build-qt/Release/*.dll build-qt/deploy/ -ErrorAction SilentlyContinue
+          windeployqt --release --compiler-runtime --no-translations build-qt/deploy/StickySnap.exe
+
+      - name: Package zip
+        shell: pwsh
+        run: Compress-Archive -Path build-qt/deploy/* -DestinationPath StickySnap-windows-qt-x64.zip
+
+      - name: Build installer (Inno Setup)
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DAppVersion=$env:version packaging/windows/StickySnap.iss
+
+      # generate_release_notes 由 release-windows 生成，此处只追加资产
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            StickySnap-windows-qt-x64.zip
+            build-qt/StickySnap-setup.exe
+
+  release-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libx11-dev libgl1-mesa-dev libegl1-mesa-dev \
+            libxkbcommon0 libxkbcommon-x11-0 libfontconfig1 libdbus-1-3 \
+            libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1
+
+      - name: Install Qt 6.8
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          target: 'desktop'
+          cache: true
+
+      - name: Configure
+        run: cmake -S portable -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Package portable tar.gz
+        run: |
+          mkdir -p StickySnap-linux/lib
+          cp build/StickySnap StickySnap-linux/
+          SKIP='libc\.so|libm\.so|ld-linux|libpthread|libdl|librt|libgcc_s|libstdc\+\+'
+          ldd build/StickySnap | awk '/=> \// {print $3}' | grep -Ev "$SKIP" | while read lib; do
+            cp "$lib" StickySnap-linux/lib/
+          done
+          cat > StickySnap-linux/run.sh <<'EOS'
+          #!/bin/sh
+          cd "$(dirname "$0")"
+          export LD_LIBRARY_PATH="$PWD/lib:$LD_LIBRARY_PATH"
+          exec ./StickySnap "$@"
+          EOS
+          chmod +x StickySnap-linux/run.sh StickySnap-linux/StickySnap
+          tar -czf StickySnap-linux-x64.tar.gz StickySnap-linux
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: StickySnap-linux-x64.tar.gz

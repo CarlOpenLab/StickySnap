@@ -6,6 +6,11 @@ endif()
 
 project(StickySnapPortable LANGUAGES CXX)
 
+# 版本号：默认 0.0.1，release CI 用 -DSTICKYSNAP_VERSION=<tag> 覆盖，注入 Info.plist
+set(STICKYSNAP_VERSION "0.0.1" CACHE STRING "StickySnap app version")
+set(MACOSX_BUNDLE_SHORT_VERSION_STRING "${STICKYSNAP_VERSION}")
+set(MACOSX_BUNDLE_BUNDLE_VERSION "${STICKYSNAP_VERSION}")
+
 if(APPLE)
   enable_language(OBJCXX)
 endif()
@@ -26,6 +31,9 @@ add_library(sticky_core STATIC
 )
 target_include_directories(sticky_core PUBLIC src)
 target_link_libraries(sticky_core PUBLIC Qt6::Core Qt6::Gui)
+if(MSVC)
+  target_compile_options(sticky_core PRIVATE /utf-8)
+endif()
 
 set(STICKYSNAP_APP_SOURCES
   src/main.cpp
@@ -51,16 +59,73 @@ if(APPLE)
     src/platform/macos/screen_capture_macos.mm
     PROPERTIES COMPILE_OPTIONS "-fobjc-arc"
   )
+elseif(WIN32)
+  list(APPEND STICKYSNAP_APP_SOURCES
+    src/platform/windows/hotkeys_windows.cpp
+    src/platform/windows/platform_windows.cpp
+    src/platform/windows/screen_capture_windows.cpp
+    src/platform/windows/ocr_windows.cpp
+  )
+
+  # OCR 探测：SDK 自带 C++/WinRT 投影头时启用 Windows.Media.Ocr 实现，
+  # 否则 ocr_windows.cpp 编译为 stub（菜单入口报「此构建未包含 OCR」）。
+  set(_cppwinrt_candidates "")
+  foreach(_root
+      "C:/Program Files (x86)/Windows Kits/10/Include"
+      "C:/Program Files/Windows Kits/10/Include")
+    file(GLOB _dirs "${_root}/*/cppwinrt")
+    foreach(_dir "${_dirs}")
+      if(EXISTS "${_dir}/winrt/Windows.Media.Ocr.h")
+        list(APPEND _cppwinrt_candidates "${_dir}")
+      endif()
+    endforeach()
+  endforeach()
+  set(_stickysnap_ocr_ok FALSE)
+  set(_stickysnap_cppwinrt_dir "")
+  if(_cppwinrt_candidates)
+    list(SORT _cppwinrt_candidates)
+    list(REVERSE _cppwinrt_candidates)
+    list(GET _cppwinrt_candidates 0 _stickysnap_cppwinrt_dir)
+    set(_stickysnap_ocr_ok TRUE)
+  endif()
+  if(_stickysnap_ocr_ok)
+    message(STATUS "StickySnap: OCR enabled via ${_stickysnap_cppwinrt_dir}")
+  else()
+    message(STATUS "StickySnap: OCR disabled (C++/WinRT projections not found)")
+  endif()
+  set(STICKYSNAP_HAVE_OCR ${_stickysnap_ocr_ok} CACHE INTERNAL "")
+  set(STICKYSNAP_CPPWINRT_DIR "${_stickysnap_cppwinrt_dir}" CACHE INTERNAL "")
+elseif(UNIX AND NOT APPLE)
+  list(APPEND STICKYSNAP_APP_SOURCES
+    src/platform/linux/platform_linux.cpp
+    src/platform/linux/hotkeys_linux.cpp
+    src/platform/linux/screen_capture_linux.cpp
+  )
 else()
   message(FATAL_ERROR
-    "The portable StickySnap build currently implements the macOS platform "
-    "layer. Add src/platform/windows or src/platform/linux before building "
-    "on this host.")
+    "The portable StickySnap build supports macOS, Windows and X11 Linux. "
+    "Platform layer not implemented for this host (Wayland unsupported).")
 endif()
 
 qt_add_executable(StickySnap ${STICKYSNAP_APP_SOURCES})
 target_link_libraries(StickySnap PRIVATE sticky_core Qt6::Widgets)
 target_include_directories(StickySnap PRIVATE src)
+
+if(WIN32)
+  set_target_properties(StickySnap PROPERTIES WIN32_EXECUTABLE TRUE)
+  target_compile_definitions(StickySnap PRIVATE
+    NOMINMAX WIN32_LEAN_AND_MEAN UNICODE _UNICODE)
+  target_link_libraries(StickySnap PRIVATE
+    user32 gdi32 shell32 dwmapi advapi32 uiautomationcore)
+  if(STICKYSNAP_HAVE_OCR)
+    target_compile_definitions(StickySnap PRIVATE STICKYSNAP_HAVE_OCR)
+    target_include_directories(StickySnap PRIVATE "${STICKYSNAP_CPPWINRT_DIR}")
+    target_link_libraries(StickySnap PRIVATE windowsapp.lib)
+  endif()
+elseif(UNIX AND NOT APPLE)
+  find_package(X11 REQUIRED)
+  target_link_libraries(StickySnap PRIVATE X11::X11)
+endif()
 
 qt_add_resources(StickySnap app_icons
   PREFIX "/icons"
@@ -86,6 +151,9 @@ if(APPLE)
     "-framework CoreGraphics"
     "-framework Foundation"
     "-framework ScreenCaptureKit"
+    "-framework ServiceManagement"
+    "-framework Vision"
+    "-framework ApplicationServices"
   )
 endif()
 
@@ -100,6 +168,9 @@ enable_testing()
 function(sticky_add_test name source)
   add_executable(${name} ${source})
   target_link_libraries(${name} PRIVATE sticky_core Qt6::Test)
+  if(MSVC)
+    target_compile_options(${name} PRIVATE /utf-8)
+  endif()
   add_test(NAME ${name} COMMAND ${name})
   set_tests_properties(${name} PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
@@ -118,6 +189,9 @@ add_executable(settings_dialog_test
 target_include_directories(settings_dialog_test PRIVATE src)
 target_link_libraries(settings_dialog_test PRIVATE
   sticky_core Qt6::Widgets Qt6::Test)
+if(MSVC)
+  target_compile_options(settings_dialog_test PRIVATE /utf-8)
+endif()
 add_test(NAME settings_dialog_test COMMAND settings_dialog_test)
 set_tests_properties(settings_dialog_test PROPERTIES
   ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
@@ -144,8 +218,52 @@ if(APPLE)
     "-framework AppKit" "-framework CoreGraphics" "-framework Foundation"
     "-framework ScreenCaptureKit"
   )
-  add_test(NAME ui_render_test COMMAND ui_render_test)
-  set_tests_properties(ui_render_test PROPERTIES
-    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+elseif(WIN32)
+  add_executable(ui_render_test
+    tests/ui_render_test.cpp
+    src/ui/overlay_window.cpp
+    src/ui/pin_window.cpp
+    src/ui/toolbar_widget.cpp
+    src/ui/tray_icon.cpp
+    src/platform/windows/platform_windows.cpp
+    src/platform/windows/screen_capture_windows.cpp
+    src/platform/windows/ocr_windows.cpp
   )
+  qt_add_resources(ui_render_test app_icons
+    PREFIX "/icons"
+    BASE "${CMAKE_CURRENT_SOURCE_DIR}/resources"
+    FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/app-icon.png"
+  )
+  target_include_directories(ui_render_test PRIVATE src)
+  target_compile_definitions(ui_render_test PRIVATE
+    NOMINMAX WIN32_LEAN_AND_MEAN UNICODE _UNICODE)
+  if(MSVC)
+    target_compile_options(ui_render_test PRIVATE /utf-8)
+  endif()
+  target_link_libraries(ui_render_test PRIVATE
+    sticky_core Qt6::Widgets Qt6::Test
+    user32 gdi32 shell32 dwmapi advapi32 uiautomationcore
+  )
+elseif(UNIX AND NOT APPLE)
+  add_executable(ui_render_test
+    tests/ui_render_test.cpp
+    src/ui/overlay_window.cpp
+    src/ui/pin_window.cpp
+    src/ui/toolbar_widget.cpp
+    src/ui/tray_icon.cpp
+    src/platform/linux/platform_linux.cpp
+    src/platform/linux/screen_capture_linux.cpp
+  )
+  find_package(X11 REQUIRED)
+  target_include_directories(ui_render_test PRIVATE src)
+  target_link_libraries(ui_render_test PRIVATE
+    sticky_core Qt6::Widgets Qt6::Test X11::X11
+  )
+else()
+  return()
 endif()
+
+add_test(NAME ui_render_test COMMAND ui_render_test)
+set_tests_properties(ui_render_test PROPERTIES
+  ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+)

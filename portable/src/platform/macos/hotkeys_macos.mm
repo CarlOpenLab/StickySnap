@@ -115,8 +115,7 @@ bool GlobalHotkeys::add(const QKeySequence& sequence, Callback callback,
   if (!nativeKey(sequence, &keyCode)) {
     if (error) {
       *error = QObject::tr(
-          "Unsupported global hotkey %1. Use F1-F12, or a letter/digit with "
-          "a modifier.")
+          "不支持的全局快捷键 %1。请使用 F1–F12，或搭配修饰键的字母、数字。")
                    .arg(sequence.toString(QKeySequence::NativeText));
     }
     return false;
@@ -130,7 +129,7 @@ bool GlobalHotkeys::add(const QKeySequence& sequence, Callback callback,
                           hotkeyId, GetApplicationEventTarget(), 0, &ref);
   if (status != noErr) {
     if (error) {
-      *error = QObject::tr("Could not register %1 (system error %2).")
+      *error = QObject::tr("无法注册快捷键 %1（系统错误 %2）。")
                    .arg(sequence.toString(QKeySequence::NativeText))
                    .arg(static_cast<int>(status));
     }

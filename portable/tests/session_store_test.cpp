@@ -11,9 +11,11 @@ class SessionStoreTest : public QObject {
 
  private slots:
   void serializeRoundTripsAllFields();
+  void serializeOmitsEmptyGroupAndDefaultsKind();
   void deserializeClampsZoomAndAlpha();
   void deserializeAcceptsLegacySixFieldLines();
   void deserializeIgnoresMalformedLines();
+  void deserializeAcceptsUnknownKindAsImage();
   void saveWritesAndLoadsIndex();
   void loadMissingFileYieldsEmptyWithError();
 };
@@ -26,6 +28,8 @@ void SessionStoreTest::serializeRoundTripsAllFields() {
   pin.alpha = 180;
   pin.passThrough = true;
   pin.dpr = 2.0;
+  pin.kind = PinKind::Animated;
+  pin.groupId = QStringLiteral("工作参考");
 
   const auto parsed =
       SessionStore::deserialize(SessionStore::serialize({pin}));
@@ -37,6 +41,27 @@ void SessionStoreTest::serializeRoundTripsAllFields() {
   QCOMPARE(parsed.at(0).alpha, pin.alpha);
   QCOMPARE(parsed.at(0).passThrough, pin.passThrough);
   QCOMPARE(parsed.at(0).dpr, pin.dpr);
+  QCOMPARE(parsed.at(0).kind, PinKind::Animated);
+  QCOMPARE(parsed.at(0).groupId, pin.groupId);
+}
+
+void SessionStoreTest::serializeOmitsEmptyGroupAndDefaultsKind() {
+  PinSession pin;
+  pin.imagePath = QStringLiteral("a.png");
+  pin.position = QPoint(1, 2);
+  pin.kind = PinKind::Image;
+  pin.groupId.clear();
+
+  const QString text = SessionStore::serialize({pin});
+  const auto fields = text.trimmed().split(QLatin1Char('\t'));
+  // kind 恒写（8 字段），空分组省略。
+  QCOMPARE(fields.size(), 8);
+  QCOMPARE(fields.at(7), QStringLiteral("image"));
+
+  const auto parsed = SessionStore::deserialize(text);
+  QCOMPARE(parsed.size(), 1);
+  QCOMPARE(parsed.at(0).kind, PinKind::Image);
+  QVERIFY(parsed.at(0).groupId.isEmpty());
 }
 
 void SessionStoreTest::deserializeClampsZoomAndAlpha() {
@@ -74,6 +99,16 @@ void SessionStoreTest::deserializeIgnoresMalformedLines() {
   QCOMPARE(parsed.size(), 1);
   QCOMPARE(parsed.at(0).imagePath, QStringLiteral("good.png"));
   QCOMPARE(parsed.at(0).position, QPoint(5, 6));
+}
+
+void SessionStoreTest::deserializeAcceptsUnknownKindAsImage() {
+  // 未来新增类型时，旧版本读取器回退到 image 而不是丢掉这一行。
+  const auto parsed = SessionStore::deserialize(
+      QStringLiteral("f.png\t1\t2\t1\t255\t0\t2\tvideo\n"));
+
+  QCOMPARE(parsed.size(), 1);
+  QCOMPARE(parsed.at(0).kind, PinKind::Image);
+  QCOMPARE(parsed.at(0).dpr, 2.0);
 }
 
 void SessionStoreTest::saveWritesAndLoadsIndex() {

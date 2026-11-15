@@ -32,6 +32,9 @@ class AppController : public QObject {
   void pinClipboard();
 
  private:
+  void pinImageFile();
+  void pinText();
+  void pinColor();
   void loadSettings();
   void setupTray();
   bool registerHotkeys(QStringList* errors = nullptr);

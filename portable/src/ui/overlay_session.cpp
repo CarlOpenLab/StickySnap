@@ -9,7 +9,7 @@ namespace sticky::ui {
 OverlaySession::OverlaySession(
     const QVector<platform::DisplayCapture>& captures,
     const core::Settings& settings, CommitFn onCommit, FinishedFn onFinished,
-    QObject* parent)
+    FeedbackFn feedback, QObject* parent)
     : QObject(parent),
       onCommit_(std::move(onCommit)),
       onFinished_(std::move(onFinished)) {
@@ -24,7 +24,7 @@ OverlaySession::OverlaySession(
           if (onCommit_) onCommit_(image, position);
           finish();
         },
-        [this] { finish(); });
+        [this] { finish(); }, feedback);
     overlays_.push_back(overlay);
     overlay->show();
     if (overlay->geometry().contains(cursor)) focusTarget = overlay;

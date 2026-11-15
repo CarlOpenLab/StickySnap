@@ -17,9 +17,14 @@ struct Settings {
   QKeySequence hotkeyShot = QKeySequence(Qt::Key_F1);
 #endif
   QKeySequence hotkeyPin = QKeySequence(Qt::Key_F3);
-  int dimPercent = 30;
+  // Matches the Windows native build's default (src/settings.h).
+  int dimPercent = 55;
   // 贴图窗常显 1px 边框（外黑内白，悬停时内圈换成强调色）。
   bool pinBorder = true;
+  // 开机自启（Windows 写注册表 Run 键，macOS 走 SMAppService）。
+  bool autostart = false;
+  // UI 元素级吸附（悬停高亮按钮/输入框级别的控件；macOS 需辅助功能授权）。
+  bool elementSnap = false;
 };
 
 // True when the sequence can be registered as a global shortcut. Function

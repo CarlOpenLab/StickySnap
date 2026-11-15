@@ -70,8 +70,8 @@ QVector<DisplayCapture> captureDisplays(QString* error) {
   if (!CGPreflightScreenCaptureAccess()) {
     if (error) {
       *error = QObject::tr(
-          "Screen Recording permission is not granted. Enable StickySnap in "
-          "System Settings > Privacy & Security > Screen Recording.");
+          "未授予「屏幕录制」权限。请在系统设置 > 隐私与安全性 > 屏幕录制 中"
+          "允许 StickySnap。");
     }
     return captures;
   }
@@ -90,14 +90,14 @@ QVector<DisplayCapture> captureDisplays(QString* error) {
                               }];
   if (dispatch_semaphore_wait(
           contentSem, dispatch_time(DISPATCH_TIME_NOW, 8 * NSEC_PER_SEC)) != 0) {
-    if (error) *error = QObject::tr("Timed out while reading displays.");
+    if (error) *error = QObject::tr("读取显示器信息超时。");
     return captures;
   }
   if (contentError || !content) {
     if (error) {
       *error = contentError
                    ? QString::fromNSString(contentError.localizedDescription)
-                   : QObject::tr("Screen capture is unavailable.");
+                   : QObject::tr("屏幕截取不可用。");
     }
     return captures;
   }
@@ -133,14 +133,14 @@ QVector<DisplayCapture> captureDisplays(QString* error) {
     if (dispatch_semaphore_wait(
             captureSem, dispatch_time(DISPATCH_TIME_NOW, 8 * NSEC_PER_SEC)) !=
         0) {
-      if (error) *error = QObject::tr("Timed out while capturing a display.");
+      if (error) *error = QObject::tr("截取显示器超时。");
       continue;
     }
     if (captureError || !cgImage) {
       if (error) {
         *error = captureError
                      ? QString::fromNSString(captureError.localizedDescription)
-                     : QObject::tr("Screen capture failed.");
+                     : QObject::tr("屏幕截取失败。");
       }
       if (cgImage) CGImageRelease(cgImage);
       continue;
@@ -164,7 +164,7 @@ QVector<DisplayCapture> captureDisplays(QString* error) {
   }
 
   if (captures.isEmpty() && error && error->isEmpty()) {
-    *error = QObject::tr("No displays were captured.");
+    *error = QObject::tr("没有截取到任何显示器。");
   }
   return captures;
 }

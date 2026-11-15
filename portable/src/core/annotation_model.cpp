@@ -1,5 +1,10 @@
 #include "core/annotation_model.h"
 
+#include <QJsonArray>
+#include <QJsonObject>
+
+#include <optional>
+
 #include <QPainter>
 #include <QPainterPath>
 #include <QPainterPathStroker>
@@ -205,6 +210,106 @@ QImage AnnotationModel::flatten(const QImage& base) const {
 
 void paintShape(QPainter& painter, const Shape& shape) {
   drawStroke(painter, shape);
+}
+
+namespace {
+
+QString shapeTypeName(ShapeType type) {
+  switch (type) {
+    case ShapeType::Rect: return QStringLiteral("rect");
+    case ShapeType::Ellipse: return QStringLiteral("ellipse");
+    case ShapeType::Arrow: return QStringLiteral("arrow");
+    case ShapeType::Pen: return QStringLiteral("pen");
+    case ShapeType::Marker: return QStringLiteral("marker");
+    case ShapeType::Mosaic: return QStringLiteral("mosaic");
+  }
+  return QStringLiteral("rect");
+}
+
+std::optional<ShapeType> shapeTypeFromName(const QString& name) {
+  if (name == QLatin1String("rect")) return ShapeType::Rect;
+  if (name == QLatin1String("ellipse")) return ShapeType::Ellipse;
+  if (name == QLatin1String("arrow")) return ShapeType::Arrow;
+  if (name == QLatin1String("pen")) return ShapeType::Pen;
+  if (name == QLatin1String("marker")) return ShapeType::Marker;
+  if (name == QLatin1String("mosaic")) return ShapeType::Mosaic;
+  return std::nullopt;
+}
+
+QJsonObject pointToJson(const QPoint& point) {
+  QJsonObject object;
+  object.insert(QLatin1String("x"), point.x());
+  object.insert(QLatin1String("y"), point.y());
+  return object;
+}
+
+QPoint pointFromJson(const QJsonValue& value) {
+  const QJsonObject object = value.toObject();
+  return QPoint(object.value(QLatin1String("x")).toInt(),
+                object.value(QLatin1String("y")).toInt());
+}
+
+}  // namespace
+
+QJsonDocument annotationToJson(const AnnotationModel& model) {
+  QJsonArray shapes;
+  for (const Shape& shape : model.shapes()) {
+    QJsonObject object;
+    object.insert(QLatin1String("type"), shapeTypeName(shape.type));
+    object.insert(QLatin1String("color"),
+                  shape.color.name(QColor::HexArgb));
+    object.insert(QLatin1String("width"), shape.width);
+    object.insert(QLatin1String("scale"), shape.scale);
+    QJsonArray points;
+    for (const QPoint& point : shape.points) {
+      points.append(pointToJson(point));
+    }
+    object.insert(QLatin1String("points"), points);
+    shapes.append(object);
+  }
+
+  QJsonObject root;
+  root.insert(QLatin1String("version"), 1);
+  root.insert(QLatin1String("shapes"), shapes);
+  return QJsonDocument(root);
+}
+
+bool annotationFromJson(const QJsonDocument& document, AnnotationModel* model) {
+  if (!model || !document.isObject()) return false;
+  const QJsonObject root = document.object();
+  if (root.value(QLatin1String("version")).toInt() != 1) return false;
+  const QJsonValue value = root.value(QLatin1String("shapes"));
+  if (!value.isArray()) return false;
+
+  AnnotationModel parsed;
+  for (const QJsonValue& entry : value.toArray()) {
+    const QJsonObject object = entry.toObject();
+    const auto type = shapeTypeFromName(
+        object.value(QLatin1String("type")).toString());
+    if (!type) return false;
+
+    Shape shape;
+    shape.type = *type;
+    const QColor color(object.value(QLatin1String("color")).toString());
+    if (!color.isValid()) return false;
+    shape.color = color;
+    const int width = object.value(QLatin1String("width")).toInt();
+    if (width <= 0) return false;
+    shape.width = width;
+    shape.scale = object.value(QLatin1String("scale")).toDouble(1.0);
+    if (shape.scale <= 0.0) return false;
+
+    const QJsonValue points = object.value(QLatin1String("points"));
+    if (!points.isArray()) return false;
+    for (const QJsonValue& point : points.toArray()) {
+      shape.points.push_back(pointFromJson(point));
+    }
+    if (shape.points.isEmpty()) return false;
+    parsed.addShape(std::move(shape));
+  }
+
+  *model = std::move(parsed);
+  return true;
 }
 
 }  // namespace sticky::core

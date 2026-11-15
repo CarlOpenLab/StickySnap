@@ -36,7 +36,7 @@ void SelectionModel::setRect(const QRect& rect) {
   current_ = rect.topLeft() + QPoint(rect.width(), rect.height());
 }
 
-SelectionModel::Handle SelectionModel::handleAt(const QPoint& pos,
+Handle SelectionModel::handleAt(const QPoint& pos,
                                                 int grip) const {
   if (!hasSelection_) return Handle::None;
   const QRect r = rect();

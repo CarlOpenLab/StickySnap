@@ -42,14 +42,14 @@ const QColor kHoverColor(255, 255, 255, 16);
 
 }  // namespace
 
-ToolbarWidget::ToolbarWidget(QWidget* parent) : QWidget(parent) {
+ToolbarWidget::ToolbarWidget(Mode mode, QWidget* parent)
+    : QWidget(parent), mode_(mode) {
   setAttribute(Qt::WA_TranslucentBackground);
   setAttribute(Qt::WA_NoSystemBackground);
   setMouseTracking(true);
   setFocusPolicy(Qt::NoFocus);
 
-  setFixedSize(static_cast<int>(kToolbarWidth),
-               static_cast<int>(kToolbarHeight));
+  // relayout() 依模式计算行宽并 setFixedSize。
   relayout();
 }
 
@@ -93,15 +93,26 @@ void ToolbarWidget::relayout() {
   addSeparator(x, separatorTop);
   x += kSeparatorMargin * 2 + kSeparatorWidth + kGap;
 
-  const int actionIds[] = {kPin, kCopy, kSave, kCancel};
-  const QStringList actionNames = {tr("贴图"), tr("复制"), tr("保存"),
-                                   tr("取消")};
-  for (int i = 0; i < 4; ++i) {
-    add(QRectF(x, contentTop, kButton, kButton), Kind::Action, actionIds[i],
-        actionNames.value(i));
+  if (mode_ == Mode::Pin) {
+    // 贴图标注模式：撤销 + 完成两个动作即可。
+    add(QRectF(x, contentTop, kButton, kButton), Kind::Action, kDone,
+        tr("完成标注"));
     x += kButton;
-    if (i < 3) x += kGap;
+  } else {
+    const int actionIds[] = {kPin, kCopy, kOcr, kSave, kCancel};
+    const QStringList actionNames = {tr("贴图"), tr("复制"), tr("OCR 文字"),
+                                     tr("保存"), tr("取消")};
+    for (int i = 0; i < 5; ++i) {
+      add(QRectF(x, contentTop, kButton, kButton), Kind::Action, actionIds[i],
+          actionNames.value(i));
+      x += kButton;
+      if (i < 4) x += kGap;
+    }
   }
+
+  rowOneWidth_ = x + kBorder + kPadding;
+  setFixedSize(static_cast<int>(rowOneWidth_),
+               static_cast<int>(kToolbarHeight));
 
   const qreal rowTwoContentTop = kRowTwoTop + kBorder + kPadding;
   const qreal rowTwoSeparatorTop = rowTwoContentTop + kSeparatorInset;
@@ -212,7 +223,7 @@ void ToolbarWidget::paintEvent(QPaintEvent*) {
     painter.setBrush(kPanelColor);
     painter.drawRoundedRect(panel, kPanelRadius, kPanelRadius);
   };
-  paintPanel(QRectF(0.5, 0.5, kPanelWidth - 1.0, kRowHeight - 1.0));
+  paintPanel(QRectF(0.5, 0.5, rowOneWidth_ - 1.0, kRowHeight - 1.0));
   paintPanel(QRectF(0.5, kRowTwoTop + 0.5, kColorPanelWidth - 1.0,
                     kRowHeight - 1.0));
 
@@ -303,10 +314,14 @@ ToolbarWidget::Icon ToolbarWidget::iconFor(Kind kind, int id) {
       return Icon::Pin;
     case kCopy:
       return Icon::Copy;
+    case kOcr:
+      return Icon::Text;
     case kSave:
       return Icon::Save;
     case kCancel:
       return Icon::Cancel;
+    case kDone:
+      return Icon::Check;
     default:
       return Icon::Rect;
   }
@@ -407,6 +422,12 @@ void ToolbarWidget::paintIcon(QPainter& painter, const QRectF& rect, Icon icon,
       painter.drawPath(path);
       break;
     }
+    case Icon::Text:
+      // OCR：三行文字横线
+      painter.drawLine(QPointF(5, 7), QPointF(19, 7));
+      painter.drawLine(QPointF(5, 12), QPointF(19, 12));
+      painter.drawLine(QPointF(5, 17), QPointF(14, 17));
+      break;
     case Icon::Save: {
       QPainterPath outline;
       outline.moveTo(5, 4);
@@ -435,6 +456,10 @@ void ToolbarWidget::paintIcon(QPainter& painter, const QRectF& rect, Icon icon,
     case Icon::Cancel:
       painter.drawLine(QPointF(6, 6), QPointF(18, 18));
       painter.drawLine(QPointF(18, 6), QPointF(6, 18));
+      break;
+    case Icon::Check:
+      painter.drawLine(QPointF(5, 12.5), QPointF(10, 17.5));
+      painter.drawLine(QPointF(10, 17.5), QPointF(19, 7));
       break;
   }
 

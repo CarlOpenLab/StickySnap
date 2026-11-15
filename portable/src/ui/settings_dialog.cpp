@@ -23,8 +23,14 @@ SettingsDialog::SettingsDialog(const core::Settings& settings, QWidget* parent)
   setModal(true);
   setMinimumWidth(420);
 
+#ifdef Q_OS_MACOS
+  const QString hintModifiers = tr("⌘ / ⌃ / ⌥");
+#else
+  const QString hintModifiers = tr("Ctrl / Alt / Shift / Win");
+#endif
   auto* hint = new QLabel(
-      tr("快捷键支持 F1–F12，或搭配 ⌘ / ⌃ / ⌥ 的字母、数字。保存后立即生效。"),
+      tr("快捷键支持 F1–F12，或搭配 %1 的字母、数字。保存后立即生效。")
+          .arg(hintModifiers),
       this);
   hint->setWordWrap(true);
 
@@ -58,12 +64,22 @@ SettingsDialog::SettingsDialog(const core::Settings& settings, QWidget* parent)
   pinBorder_->setObjectName(QStringLiteral("pinBorderCheck"));
   pinBorder_->setChecked(settings.pinBorder);
 
+  autostart_ = new QCheckBox(tr("开机自启"), this);
+  autostart_->setObjectName(QStringLiteral("autostartCheck"));
+  autostart_->setChecked(settings.autostart);
+
+  elementSnap_ = new QCheckBox(tr("吸附到界面元素（按钮/输入框）"), this);
+  elementSnap_->setObjectName(QStringLiteral("elementSnapCheck"));
+  elementSnap_->setChecked(settings.elementSnap);
+
   auto* form = new QFormLayout;
   form->addRow(tr("截图快捷键"), shotEdit_);
   form->addRow(tr("贴图快捷键"), pinEdit_);
   form->addRow(tr("调暗程度"), dimRow);
   form->addRow(tr("贴图边框"), pinBorder_);
   form->addRow(tr("强调色"), accentButton_);
+  form->addRow(tr("开机自启"), autostart_);
+  form->addRow(tr("元素吸附"), elementSnap_);
 
   buttons_ = new QDialogButtonBox(
       QDialogButtonBox::Save | QDialogButtonBox::Cancel, this);
@@ -106,6 +122,8 @@ core::Settings SettingsDialog::settings() const {
   result.hotkeyPin = pinEdit_->keySequence();
   result.dimPercent = dimSlider_->value();
   result.pinBorder = pinBorder_->isChecked();
+  result.autostart = autostart_->isChecked();
+  result.elementSnap = elementSnap_->isChecked();
   return result;
 }
 

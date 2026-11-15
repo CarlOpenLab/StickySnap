@@ -1,4 +1,4 @@
-# StickySnap CI —— Windows 构建（macOS/Linux 工作流后续按平台进度添加）
+# StickySnap CI —— Windows 构建（原生 Win32 版 + Qt portable 版；macOS 由 macos.yml 构建）
 name: windows-build
 
 on:
@@ -32,7 +32,50 @@ jobs:
           name: StickySnap-windows-x64
           path: StickySnap-windows-x64.zip
 
+  # Qt portable 全功能版（与 macOS 同一代码库，随功能演进）
+  build-windows-qt:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt 6.8
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          target: 'desktop'
+          cache: true
+
+      - name: Configure
+        shell: pwsh
+        run: cmake -S portable -B build-qt -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build build-qt --config Release
+
+      - name: Test
+        shell: pwsh
+        run: ctest --test-dir build-qt -C Release --output-on-failure
+
+      # 把 Qt DLL 与 VC 运行库复制到 exe 旁边，让 zip 在任何机器可直接运行
+      - name: Deploy Qt runtime
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path StickySnap-windows-qt | Out-Null
+          Copy-Item build-qt/Release/StickySnap.exe StickySnap-windows-qt/
+          Copy-Item build-qt/Release/*.dll StickySnap-windows-qt/ -ErrorAction SilentlyContinue
+          windeployqt --release --compiler-runtime --no-translations StickySnap-windows-qt/StickySnap.exe
+
+      - name: Package
+        shell: pwsh
+        run: Compress-Archive -Path StickySnap-windows-qt -DestinationPath StickySnap-windows-qt-x64.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: StickySnap-windows-qt-x64
+          path: StickySnap-windows-qt-x64.zip
+
 # 后续：
-#   1. Inno Setup / WiX 打 Windows 安装包
-#   2. macOS job：macos-latest + Xcode（Swift/AppKit 版）
-#   3. Linux job：AppImage / deb
+#   1. Inno Setup 安装包（release.yml）
+#   2. Linux job：AppImage / deb（待 portable 增加 Linux 平台层）

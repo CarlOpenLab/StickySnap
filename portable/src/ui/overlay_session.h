@@ -20,10 +20,12 @@ class OverlaySession : public QObject {
  public:
   using CommitFn = std::function<void(const QImage&, const QPoint&)>;
   using FinishedFn = std::function<void()>;
+  using FeedbackFn = std::function<void(const QString&)>;
 
   OverlaySession(const QVector<platform::DisplayCapture>& captures,
                  const core::Settings& settings, CommitFn onCommit,
-                 FinishedFn onFinished, QObject* parent = nullptr);
+                 FinishedFn onFinished, FeedbackFn feedback = FeedbackFn(),
+                 QObject* parent = nullptr);
   ~OverlaySession() override;
 
   void closeAll();

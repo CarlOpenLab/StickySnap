@@ -41,6 +41,8 @@ class SettingsDialog : public QDialog {
   QLabel* dimValue_ = nullptr;
   QPushButton* accentButton_ = nullptr;
   QCheckBox* pinBorder_ = nullptr;
+  QCheckBox* autostart_ = nullptr;
+  QCheckBox* elementSnap_ = nullptr;
   QDialogButtonBox* buttons_ = nullptr;
   QColor accent_;
 };

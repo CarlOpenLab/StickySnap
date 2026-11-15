@@ -1,0 +1,52 @@
+# StickySnap CI —— macOS 构建（Qt portable 版，macos-latest 上产出 StickySnap.app）
+name: macos-build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt 6.8
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          target: 'desktop'
+          cache: true
+
+      - name: Configure (universal, macOS 14+)
+        run: cmake -S portable -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      # 把 Qt 动态库打进 bundle，否则 app 离开 CI 机器就起不来（install-qt-action 已把 Qt bin 加入 PATH）
+      - name: Deploy Qt frameworks
+        run: macdeployqt build/StickySnap.app
+
+      # ad-hoc 签名：Apple Silicon 上未签名程序无法运行（未公证，用户首次打开需 xattr -cr）
+      - name: Codesign (ad-hoc)
+        run: codesign --force --deep --sign - build/StickySnap.app
+
+      - name: Package
+        run: ditto -c -k --sequesterRsrc --keepParent build/StickySnap.app StickySnap-macos-universal.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: StickySnap-macos-universal
+          path: StickySnap-macos-universal.zip
+
+# 后续：
+#   1. Developer ID 签名 + notarization（需 Apple Developer 账号）
+#   2. hdiutil 出 DMG
+#   3. 如只需 Apple Silicon 可去掉 universal（CMAKE_OSX_ARCHITECTURES）

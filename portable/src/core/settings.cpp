@@ -106,6 +106,10 @@ Settings SettingsStore::parse(const QString& text) {
       }
     } else if (key == QLatin1String("pin_border")) {
       settings.pinBorder = parseBool(value, settings.pinBorder);
+    } else if (key == QLatin1String("autostart")) {
+      settings.autostart = parseBool(value, settings.autostart);
+    } else if (key == QLatin1String("element_snap")) {
+      settings.elementSnap = parseBool(value, settings.elementSnap);
     }
   }
 
@@ -130,6 +134,10 @@ QString SettingsStore::serialize(const Settings& settings) {
   text += QStringLiteral("dim_opacity=%1\n\n").arg(settings.dimPercent);
   text += QStringLiteral("# Draw a 1px border around pinned images (1/0)\n");
   text += QStringLiteral("pin_border=%1\n").arg(settings.pinBorder ? 1 : 0);
+  text += QStringLiteral("# Launch at login (1/0)\n");
+  text += QStringLiteral("autostart=%1\n").arg(settings.autostart ? 1 : 0);
+  text += QStringLiteral("# Snap to UI elements while selecting (1/0)\n");
+  text += QStringLiteral("element_snap=%1\n").arg(settings.elementSnap ? 1 : 0);
   return text;
 }
 

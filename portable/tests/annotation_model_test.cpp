@@ -1,3 +1,6 @@
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QPainter>
 #include <QtTest>
 
@@ -41,6 +44,8 @@ class AnnotationModelTest : public QObject {
   void arrowDrawsLineAndHead();
   void mosaicPixelsWithinABlockAreEqual();
   void flattenMatchesPreviewRendering();
+  void jsonRoundTripsShapes();
+  void jsonRejectsGarbage();
 };
 
 void AnnotationModelTest::rectDrawsBorderButNotInterior() {
@@ -160,6 +165,50 @@ void AnnotationModelTest::flattenMatchesPreviewRendering() {
   painter.end();
 
   QCOMPARE(flattened, preview);
+}
+
+void AnnotationModelTest::jsonRoundTripsShapes() {
+  AnnotationModel model;
+  Shape rect = makeShape(ShapeType::Rect, QColor(QStringLiteral("#80FF0000")), 4,
+                         {QPoint(3, 4), QPoint(50, 60)});
+  rect.scale = 2.0;
+  model.addShape(rect);
+  model.addShape(makeShape(ShapeType::Pen, Qt::blue, 7,
+                           {QPoint(1, 1), QPoint(2, 3), QPoint(5, 8)}));
+
+  AnnotationModel parsed;
+  QVERIFY(annotationFromJson(annotationToJson(model), &parsed));
+
+  const QVector<Shape>& shapes = parsed.shapes();
+  QCOMPARE(shapes.size(), 2);
+  QCOMPARE(shapes.at(0).type, ShapeType::Rect);
+  QCOMPARE(shapes.at(0).color, QColor(QStringLiteral("#80FF0000")));
+  QCOMPARE(shapes.at(0).width, 4);
+  QCOMPARE(shapes.at(0).scale, 2.0);
+  QCOMPARE(shapes.at(0).points, (QVector<QPoint>{QPoint(3, 4), QPoint(50, 60)}));
+  QCOMPARE(shapes.at(1).type, ShapeType::Pen);
+  QCOMPARE(shapes.at(1).points.size(), 3);
+}
+
+void AnnotationModelTest::jsonRejectsGarbage() {
+  AnnotationModel model;
+  QVERIFY(!annotationFromJson(QJsonDocument(), &model));
+  QVERIFY(!annotationFromJson(
+      QJsonDocument(QJsonObject{{QStringLiteral("version"), 99},
+                                {QStringLiteral("shapes"), QJsonArray()}}),
+      &model));
+  QVERIFY(!annotationFromJson(
+      QJsonDocument(QJsonObject{{QStringLiteral("version"), 1},
+                                {QStringLiteral("shapes"),
+                                 QJsonArray{QJsonObject{
+                                     {QStringLiteral("type"), QStringLiteral("nope")},
+                                     {QStringLiteral("color"), QStringLiteral("#FF0000")},
+                                     {QStringLiteral("width"), 2},
+                                     {QStringLiteral("scale"), 1.0},
+                                     {QStringLiteral("points"),
+                                      QJsonArray{QJsonObject{{"x", 1}, {"y", 2}}}}}}}}),
+      &model));
+  QVERIFY(model.empty());
 }
 
 QTEST_MAIN(AnnotationModelTest)

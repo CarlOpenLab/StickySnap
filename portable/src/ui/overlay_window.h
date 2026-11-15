@@ -30,9 +30,11 @@ class OverlayWindow : public QWidget {
  public:
   using CommitFn = std::function<void(const QImage&, const QPoint&)>;
   using ClosedFn = std::function<void()>;
+  using FeedbackFn = std::function<void(const QString&)>;
 
   OverlayWindow(platform::DisplayCapture capture, const core::Settings& settings,
                 CommitFn onCommit, ClosedFn onClosed,
+                FeedbackFn feedback = FeedbackFn(),
                 QWidget* parent = nullptr);
   ~OverlayWindow() override;
 
@@ -58,6 +60,7 @@ class OverlayWindow : public QWidget {
 
   void commitSelection();
   void copySelection();
+  void ocrSelection();
   void saveSelection();
   void undoLastShape();
   void finishSession();
@@ -95,6 +98,7 @@ class OverlayWindow : public QWidget {
   ToolbarWidget* toolbar_ = nullptr;
   CommitFn onCommit_;
   ClosedFn onClosed_;
+  FeedbackFn feedback_;
   bool committed_ = false;
   bool closedNotified_ = false;
   bool nativeConfigured_ = false;

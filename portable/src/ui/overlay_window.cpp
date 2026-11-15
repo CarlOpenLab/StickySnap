@@ -11,6 +11,7 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
+#include <QPointer>
 
 #include <algorithm>
 
@@ -55,12 +56,13 @@ Qt::CursorShape cursorForHandle(core::Handle handle) {
 OverlayWindow::OverlayWindow(platform::DisplayCapture capture,
                              const core::Settings& settings,
                              CommitFn onCommit, ClosedFn onClosed,
-                             QWidget* parent)
+                             FeedbackFn feedback, QWidget* parent)
     : QWidget(parent),
       capture_(std::move(capture)),
       settings_(settings),
       onCommit_(std::move(onCommit)),
-      onClosed_(std::move(onClosed)) {
+      onClosed_(std::move(onClosed)),
+      feedback_(std::move(feedback)) {
   setWindowFlags(Qt::Window | Qt::FramelessWindowHint |
                  Qt::WindowStaysOnTopHint | Qt::NoDropShadowWindowHint);
   setAttribute(Qt::WA_DeleteOnClose, false);
@@ -69,7 +71,7 @@ OverlayWindow::OverlayWindow(platform::DisplayCapture capture,
   setCursor(Qt::CrossCursor);
   setGeometry(capture_.geometry);
 
-  toolbar_ = new ToolbarWidget(this);
+  toolbar_ = new ToolbarWidget(ToolbarWidget::Overlay, this);
   toolbar_->setAccent(settings_.accent);
   toolbar_->hide();
 
@@ -96,6 +98,9 @@ OverlayWindow::OverlayWindow(platform::DisplayCapture capture,
         break;
       case ToolbarWidget::kCopy:
         copySelection();
+        break;
+      case ToolbarWidget::kOcr:
+        ocrSelection();
         break;
       case ToolbarWidget::kSave:
         saveSelection();
@@ -641,7 +646,16 @@ void OverlayWindow::keyPressEvent(QKeyEvent* event) {
 
 void OverlayWindow::updateHover(const QPoint& widgetPoint) {
   const QRect window = platform::windowAt(mapToGlobal(widgetPoint));
-  const QRect local = window.translated(-capture_.geometry.topLeft())
+  QRect hover = window;
+  if (settings_.elementSnap) {
+    // 元素矩形比所在窗口更小（或窗口检测为空）时优先吸附元素。
+    const QRect element = platform::uiElementAt(mapToGlobal(widgetPoint));
+    if (!element.isNull() &&
+        (window.isNull() || (window.contains(element) && element != window))) {
+      hover = element;
+    }
+  }
+  const QRect local = hover.translated(-capture_.geometry.topLeft())
                           .intersected(rect());
   if (local != hoverRect_) {
     hoverRect_ = local;
@@ -706,6 +720,32 @@ void OverlayWindow::copySelection() {
   result.setDevicePixelRatio(capture_.dpr > 0 ? capture_.dpr : 1.0);
   QApplication::clipboard()->setImage(result);
   finishSession();
+}
+
+void OverlayWindow::ocrSelection() {
+  if (committed_ || !selection_.isValid()) return;
+  const QRect source = selectionImageRect();
+  if (source.isEmpty()) return;
+
+  QImage result = annotations_.flatten(capture_.image.copy(source));
+  committed_ = true;  // OCR 期间冻结会话，避免重复触发
+  QPointer<OverlayWindow> guard(this);
+  platform::ocrText(result, [guard, this](const QString& text,
+                                          const QString& error) {
+    if (!guard) return;  // 会话在等待 OCR 结果期间被关闭
+    if (error.isEmpty() && !text.isEmpty()) {
+      QApplication::clipboard()->setText(text);
+      finishSession();
+      if (feedback_) {
+        feedback_(QObject::tr("已复制识别的文字（%1 个字符）。").arg(text.size()));
+      }
+      return;
+    }
+    committed_ = false;  // 允许重试
+    if (feedback_) {
+      feedback_(error.isEmpty() ? QObject::tr("没有识别到文字。") : error);
+    }
+  });
 }
 
 void OverlayWindow::saveSelection() {
