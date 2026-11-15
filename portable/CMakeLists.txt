@@ -124,7 +124,7 @@ if(WIN32)
   endif()
 elseif(UNIX AND NOT APPLE)
   find_package(X11 REQUIRED)
-  target_link_libraries(StickySnap PRIVATE X11::X11)
+  target_link_libraries(StickySnap PRIVATE X11::X11 ${X11_Xext_LIB})
 endif()
 
 qt_add_resources(StickySnap app_icons
@@ -257,7 +257,7 @@ elseif(UNIX AND NOT APPLE)
   find_package(X11 REQUIRED)
   target_include_directories(ui_render_test PRIVATE src)
   target_link_libraries(ui_render_test PRIVATE
-    sticky_core Qt6::Widgets Qt6::Test X11::X11
+    sticky_core Qt6::Widgets Qt6::Test X11::X11 ${X11_Xext_LIB}
   )
 else()
   return()
