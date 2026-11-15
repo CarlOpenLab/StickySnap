@@ -1,5 +1,6 @@
 #include <QApplication>
 #include <QTemporaryDir>
+#include <QDir>
 #include <QtTest>
 
 #include "core/session_store.h"
@@ -9,6 +10,11 @@
 #include "ui/tray_icon.h"
 
 using namespace sticky;
+
+QString scratchFile(const QString& name) {
+  return QDir(QDir::tempPath()).absoluteFilePath(name);
+}
+
 
 namespace {
 
@@ -131,7 +137,7 @@ void UiRenderTest::overlaySelectionShowsToolbarAndCommits() {
 
   const QPixmap shot = overlay.grab();
   QVERIFY(!shot.isNull());
-  QVERIFY(shot.save(QStringLiteral("/tmp/stickysnap-overlay.png")));
+  QVERIFY(shot.save(scratchFile(QStringLiteral("stickysnap-overlay.png"))));
 
   QTest::keyClick(&overlay, Qt::Key_Return);
   QTest::qWait(10);
@@ -148,7 +154,7 @@ void UiRenderTest::toolbarUsesLandingPageLayout() {
 
   const QPixmap shot = toolbar.grab();
   QVERIFY(!shot.isNull());
-  QVERIFY(shot.save(QStringLiteral("/tmp/stickysnap-toolbar.png")));
+  QVERIFY(shot.save(scratchFile(QStringLiteral("stickysnap-toolbar.png"))));
 }
 
 void UiRenderTest::toolbarHitTargetsFollowLandingPageLayout() {
@@ -179,7 +185,7 @@ void UiRenderTest::rectEndsAtReleasePoint() {
   const QImage committed = renderShapeTool(0);
   QVERIFY(!committed.isNull());
   QCOMPARE(committed.size(), QSize(400, 300));
-  QVERIFY(committed.save(QStringLiteral("/tmp/stickysnap-rect.png")));
+  QVERIFY(committed.save(scratchFile(QStringLiteral("stickysnap-rect.png"))));
   QVERIFY2(isAnnotationBlue(committed.pixelColor(300, 150)),
            "rect right edge should be at the release point");
 }
@@ -188,7 +194,7 @@ void UiRenderTest::ellipseEndsAtReleasePoint() {
   const QImage committed = renderShapeTool(1);
   QVERIFY(!committed.isNull());
   QCOMPARE(committed.size(), QSize(400, 300));
-  QVERIFY(committed.save(QStringLiteral("/tmp/stickysnap-ellipse.png")));
+  QVERIFY(committed.save(scratchFile(QStringLiteral("stickysnap-ellipse.png"))));
   QVERIFY2(isAnnotationBlue(committed.pixelColor(300, 150)),
            "ellipse right edge should be at the release point");
 }
@@ -197,7 +203,7 @@ void UiRenderTest::arrowEndsAtReleasePoint() {
   const QImage committed = renderShapeTool(2);
   QVERIFY(!committed.isNull());
   QCOMPARE(committed.size(), QSize(400, 300));
-  QVERIFY(committed.save(QStringLiteral("/tmp/stickysnap-arrow.png")));
+  QVERIFY(committed.save(scratchFile(QStringLiteral("stickysnap-arrow.png"))));
   QVERIFY2(isAnnotationBlue(committed.pixelColor(175, 150)),
            "arrow shaft should reach the release point");
 }
@@ -206,7 +212,7 @@ void UiRenderTest::penFollowsEveryPoint() {
   const QImage committed = renderShapeTool(3);
   QVERIFY(!committed.isNull());
   QCOMPARE(committed.size(), QSize(400, 300));
-  QVERIFY(committed.save(QStringLiteral("/tmp/stickysnap-pen.png")));
+  QVERIFY(committed.save(scratchFile(QStringLiteral("stickysnap-pen.png"))));
   QVERIFY2(isAnnotationBlue(committed.pixelColor(150, 100)),
            "pen should pass through every drag point");
   QVERIFY2(isAnnotationBlue(committed.pixelColor(225, 175)),
@@ -217,7 +223,7 @@ void UiRenderTest::highlighterFollowsEveryPoint() {
   const QImage committed = renderShapeTool(4);
   QVERIFY(!committed.isNull());
   QCOMPARE(committed.size(), QSize(400, 300));
-  QVERIFY(committed.save(QStringLiteral("/tmp/stickysnap-highlighter.png")));
+  QVERIFY(committed.save(scratchFile(QStringLiteral("stickysnap-highlighter.png"))));
   const QColor color = committed.pixelColor(150, 100);
   QVERIFY2(color.blue() > 60 && color.red() < 50,
            "highlighter should pass through every drag point");
@@ -231,7 +237,7 @@ void UiRenderTest::mosaicPixelatesAlongStroke() {
   const QImage committed = renderToolOnCapture(5, capture.image);
   QVERIFY(!committed.isNull());
   QCOMPARE(committed.size(), QSize(400, 300));
-  QVERIFY(committed.save(QStringLiteral("/tmp/stickysnap-mosaic.png")));
+  QVERIFY(committed.save(scratchFile(QStringLiteral("stickysnap-mosaic.png"))));
 
   const QColor blockA = committed.pixelColor(151, 101);
   const QColor blockB = committed.pixelColor(152, 102);
@@ -249,7 +255,7 @@ void UiRenderTest::penKeepsLogicalThicknessOnRetina() {
                           QPoint(450, 200));
   QVERIFY(!committed.isNull());
   QCOMPARE(committed.size(), QSize(800, 600));
-  QVERIFY(committed.save(QStringLiteral("/tmp/stickysnap-pen-retina.png")));
+  QVERIFY(committed.save(scratchFile(QStringLiteral("stickysnap-pen-retina.png"))));
 
   int thickness = 0;
   for (int y = 150; y < 250; ++y) {
@@ -274,7 +280,7 @@ void UiRenderTest::mosaicKeepsLogicalBlockSizeOnRetina() {
                           QPoint(450, 300));
   QVERIFY(!committed.isNull());
   QCOMPARE(committed.size(), QSize(800, 600));
-  QVERIFY(committed.save(QStringLiteral("/tmp/stickysnap-mosaic-retina.png")));
+  QVERIFY(committed.save(scratchFile(QStringLiteral("stickysnap-mosaic-retina.png"))));
 
   const QColor blockA = committed.pixelColor(105, 400);
   const QColor blockB = committed.pixelColor(115, 400);
@@ -310,7 +316,7 @@ void UiRenderTest::previewStaysInsideSelection() {
 
   const QPixmap shot = overlay.grab();
   QVERIFY(!shot.isNull());
-  QVERIFY(shot.save(QStringLiteral("/tmp/stickysnap-preview-clip.png")));
+  QVERIFY(shot.save(scratchFile(QStringLiteral("stickysnap-preview-clip.png"))));
   QVERIFY2(!isAnnotationBlue(shot.toImage().pixelColor(600, 250)),
            "live annotation preview must stay inside the selection");
 
@@ -342,7 +348,7 @@ void UiRenderTest::mosaicPreviewsPixelsWhileDragging() {
 
   const QPixmap shot = overlay.grab();
   QVERIFY(!shot.isNull());
-  QVERIFY(shot.save(QStringLiteral("/tmp/stickysnap-mosaic-preview.png")));
+  QVERIFY(shot.save(scratchFile(QStringLiteral("stickysnap-mosaic-preview.png"))));
   const QImage frame = shot.toImage();
   QCOMPARE(frame.pixelColor(250, 250), frame.pixelColor(255, 255));
 
@@ -356,7 +362,7 @@ void UiRenderTest::trayIconRendersMark() {
 
   const QPixmap pixmap = icon.pixmap(44, 44);
   QVERIFY(!pixmap.isNull());
-  QVERIFY(pixmap.save(QStringLiteral("/tmp/stickysnap-tray-icon.png")));
+  QVERIFY(pixmap.save(scratchFile(QStringLiteral("stickysnap-tray-icon.png"))));
 
   const QImage image = pixmap.toImage();
   int opaque = 0;
@@ -389,7 +395,7 @@ void UiRenderTest::pinWindowRendersAtLogicalSize() {
   QCOMPARE(pin.size(), QSize(200, 100));
   const QPixmap shot = pin.grab();
   QVERIFY(!shot.isNull());
-  QVERIFY(shot.save(QStringLiteral("/tmp/stickysnap-pin.png")));
+  QVERIFY(shot.save(scratchFile(QStringLiteral("stickysnap-pin.png"))));
   pin.close();
 }
 

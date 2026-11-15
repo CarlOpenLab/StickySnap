@@ -2,12 +2,18 @@
 #include <QKeySequenceEdit>
 #include <QPushButton>
 #include <QSlider>
+#include <QDir>
 #include <QtTest>
 
 #include "core/settings.h"
 #include "ui/settings_dialog.h"
 
 using namespace sticky;
+
+QString scratchFile(const QString& name) {
+  return QDir(QDir::tempPath()).absoluteFilePath(name);
+}
+
 
 class SettingsDialogTest : public QObject {
   Q_OBJECT
@@ -101,7 +107,7 @@ void SettingsDialogTest::rendersDialog() {
   QVERIFY(dialog.isVisible());
   const QPixmap shot = dialog.grab();
   QVERIFY(!shot.isNull());
-  QVERIFY(shot.save(QStringLiteral("/tmp/stickysnap-settings.png")));
+  QVERIFY(shot.save(scratchFile(QStringLiteral("stickysnap-settings.png"))));
 
   dialog.close();
 }
