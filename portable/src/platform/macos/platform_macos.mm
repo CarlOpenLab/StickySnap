@@ -218,7 +218,7 @@ bool isAutostart() {
   if (snapshot) {
     for (CFIndex i = 0; i < CFArrayGetCount(snapshot); ++i) {
       LSSharedFileListItemRef item = reinterpret_cast<LSSharedFileListItemRef>(
-          CFArrayGetValueAtIndex(snapshot, i));
+          const_cast<void*>(CFArrayGetValueAtIndex(snapshot, i)));
       CFURLRef url = LSSharedFileListItemCopyResolvedURL(
           item,
           kLSSharedFileListNoUserInteraction | kLSSharedFileListDoNotMountVolumes,
