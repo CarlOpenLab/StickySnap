@@ -2,9 +2,10 @@
 
 #import <AppKit/AppKit.h>
 #import <ApplicationServices/ApplicationServices.h>
-#import <ServiceManagement/SMAppService.h>
+#import <CoreServices/CoreServices.h>
 #import <Vision/Vision.h>
 
+#include <QCoreApplication>
 #include <QDesktopServices>
 #include <QDir>
 #include <QGuiApplication>
@@ -148,42 +149,102 @@ void setPinBoundToDesktop(QWidget* window, bool bound) {
   }
 }
 
+// 登录项走 LSSharedFileList（系统设置 > 通用 > 登录项 可见）。SMAppService
+// 在 CI 的 Xcode 26 SDK 上头文件只有前向声明，为保编译兼容统一用旧 API。
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
+namespace {
+
+NSURL* sharedApplicationUrl() {
+  const QString path = QCoreApplication::applicationFilePath();
+  return [NSURL fileURLWithPath:[NSString stringWithUTF8String:path.toUtf8().constData()]];
+}
+
+LSSharedFileListRef sharedLoginItemsList() {
+  return LSSharedFileListCreate(kCFAllocatorDefault,
+                                kLSSharedFileListSessionLoginItems, nullptr);
+}
+
+}  // namespace
+
 bool setAutostart(bool enabled) {
-  if (@available(macOS 13.0, *)) {
-    SMAppService* service = [SMAppService mainApp];
-    NSError* error = nil;
-    if (enabled) {
-      if (service.status == SMAppServiceStatusEnabled) return true;
-      if (![service registerAndReturnError:&error]) {
-        qWarning("StickySnap: cannot register login item: %s",
-                 error.localizedDescription.UTF8String);
-        return false;
+  LSSharedFileListRef list = sharedLoginItemsList();
+  if (!list) return false;
+
+  NSURL* appUrl = sharedApplicationUrl();
+  bool ok = false;
+  if (enabled) {
+    LSSharedFileListItemRef item = LSSharedFileListInsertItemURL(
+        list, kLSSharedFileListItemLast, nullptr, nullptr,
+        (__bridge CFURLRef)appUrl, nullptr, nullptr);
+    ok = item != nullptr;
+    if (item) CFRelease(item);
+  } else {
+    UInt32 seed = 0;
+    LSSharedFileListSnapshotRef snapshot =
+        LSSharedFileListCopySnapshot(list, &seed);
+    ok = true;
+    if (snapshot) {
+      for (CFIndex i = 0; i < CFArrayGetCount(snapshot); ++i) {
+        LSSharedFileListItemRef item = reinterpret_cast<LSSharedFileListItemRef>(
+            CFArrayGetValueAtIndex(snapshot, i));
+        CFURLRef url = LSSharedFileListItemCopyResolvedURL(
+            item,
+            kLSSharedFileListNoUserInteraction | kLSSharedFileListDoNotMountVolumes,
+            nullptr);
+        if (url) {
+          NSURL* itemUrl = (__bridge NSURL*)url;
+          if ([itemUrl.path isEqualToString:appUrl.path]) {
+            ok = LSSharedFileListItemRemove(list, item) == noErr;
+          }
+          CFRelease(url);
+        }
       }
-      return true;
+      CFRelease(snapshot);
     }
-    if (service.status != SMAppServiceStatusEnabled) return true;
-    if (![service unregisterAndReturnError:&error]) {
-      qWarning("StickySnap: cannot unregister login item: %s",
-               error.localizedDescription.UTF8String);
-      return false;
-    }
-    return true;
   }
-  return false;
+  CFRelease(list);
+  return ok;
 }
 
 bool isAutostart() {
-  if (@available(macOS 13.0, *)) {
-    return [SMAppService mainApp].status == SMAppServiceStatusEnabled;
+  LSSharedFileListRef list = sharedLoginItemsList();
+  if (!list) return false;
+
+  NSURL* appUrl = sharedApplicationUrl();
+  bool found = false;
+  UInt32 seed = 0;
+  LSSharedFileListSnapshotRef snapshot = LSSharedFileListCopySnapshot(list, &seed);
+  if (snapshot) {
+    for (CFIndex i = 0; i < CFArrayGetCount(snapshot); ++i) {
+      LSSharedFileListItemRef item = reinterpret_cast<LSSharedFileListItemRef>(
+          CFArrayGetValueAtIndex(snapshot, i));
+      CFURLRef url = LSSharedFileListItemCopyResolvedURL(
+          item,
+          kLSSharedFileListNoUserInteraction | kLSSharedFileListDoNotMountVolumes,
+          nullptr);
+      if (url) {
+        NSURL* itemUrl = (__bridge NSURL*)url;
+        if ([itemUrl.path isEqualToString:appUrl.path]) found = true;
+        CFRelease(url);
+      }
+      if (found) break;
+    }
+    CFRelease(snapshot);
   }
-  return false;
+  CFRelease(list);
+  return found;
 }
+
+#pragma clang diagnostic pop
 
 bool ensureUiElementPermission() {
   if (AXIsProcessTrusted()) return true;
   // 首次调用触发系统的辅助功能授权弹窗。
   NSDictionary* options = @{(__bridge id)kAXTrustedCheckOptionPrompt: @YES};
-  return AXIsProcessTrustedWithOptions(options) == YES;
+  return AXIsProcessTrustedWithOptions(
+             (__bridge CFDictionaryRef)options) == YES;
 }
 
 QRect uiElementAt(const QPoint& globalPoint) {
@@ -206,15 +267,18 @@ QRect uiElementAt(const QPoint& globalPoint) {
       if (AXUIElementCopyAttributeValue(element, kAXPositionAttribute,
                                         &value) == kAXErrorSuccess &&
           value) {
+        // 新 SDK 把 kAXValueCGPointType 声明成 const UInt32，需显式转枚举。
         AXValueGetValue(reinterpret_cast<AXValueRef>(value),
-                        kAXValueCGPointType, &position);
+                        static_cast<AXValueType>(kAXValueCGPointType),
+                        &position);
         CFRelease(value);
       }
       if (AXUIElementCopyAttributeValue(element, kAXSizeAttribute,
                                         &value) == kAXErrorSuccess &&
           value) {
         AXValueGetValue(reinterpret_cast<AXValueRef>(value),
-                        kAXValueCGSizeType, &size);
+                        static_cast<AXValueType>(kAXValueCGSizeType),
+                        &size);
         CFRelease(value);
       }
       if (size.width >= 2.0 && size.height >= 2.0) {

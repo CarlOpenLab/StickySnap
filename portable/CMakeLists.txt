@@ -254,7 +254,11 @@ elseif(UNIX AND NOT APPLE)
     src/platform/linux/platform_linux.cpp
     src/platform/linux/screen_capture_linux.cpp
   )
-  find_package(X11 REQUIRED)
+  qt_add_resources(ui_render_test app_icons
+    PREFIX "/icons"
+    BASE "${CMAKE_CURRENT_SOURCE_DIR}/resources"
+    FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/app-icon.png"
+  )
   target_include_directories(ui_render_test PRIVATE src)
   target_link_libraries(ui_render_test PRIVATE
     sticky_core Qt6::Widgets Qt6::Test X11::X11 ${X11_Xext_LIB}
