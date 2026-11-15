@@ -215,8 +215,10 @@ if(APPLE)
   target_include_directories(ui_render_test PRIVATE src)
   target_link_libraries(ui_render_test PRIVATE
     sticky_core Qt6::Widgets Qt6::Test
-    "-framework AppKit" "-framework CoreGraphics" "-framework Foundation"
-    "-framework ScreenCaptureKit"
+    "-framework AppKit" "-framework ApplicationServices"
+    "-framework CoreGraphics" "-framework Foundation"
+    "-framework ScreenCaptureKit" "-framework ServiceManagement"
+    "-framework Vision"
   )
 elseif(WIN32)
   add_executable(ui_render_test
