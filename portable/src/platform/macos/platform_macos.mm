@@ -1,7 +1,8 @@
 #include "platform/platform.h"
 
 #import <AppKit/AppKit.h>
-#import <ServiceManagement/ServiceManagement.h>
+#import <ApplicationServices/ApplicationServices.h>
+#import <ServiceManagement/SMAppService.h>
 #import <Vision/Vision.h>
 
 #include <QDesktopServices>
@@ -181,7 +182,7 @@ bool isAutostart() {
 bool ensureUiElementPermission() {
   if (AXIsProcessTrusted()) return true;
   // 首次调用触发系统的辅助功能授权弹窗。
-  NSDictionary* options = @{(id)kAXTrustedCheckOptionPrompt: @YES};
+  NSDictionary* options = @{(__bridge id)kAXTrustedCheckOptionPrompt: @YES};
   return AXIsProcessTrustedWithOptions(options) == YES;
 }
 
@@ -257,7 +258,8 @@ void ocrText(const QImage& image, OcrCallback callback) {
     __block NSString* recognized = nil;
 
     VNRecognizeTextRequest* request = [[VNRecognizeTextRequest alloc]
-        initWithCompletionHandler:^(VNRequest* inner) {
+        initWithCompletionHandler:^(VNRequest* inner,
+                                    NSError* requestError) {
           NSMutableArray<NSString*>* lines = [NSMutableArray array];
           for (VNRecognizedTextObservation* observation in inner.results) {
             VNRecognizedText* candidate =

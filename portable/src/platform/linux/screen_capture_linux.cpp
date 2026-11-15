@@ -241,4 +241,9 @@ QRect uiElementAt(const QPoint& globalPoint) {
   return {};  // Linux 暂无元素级吸附
 }
 
+void ocrText(const QImage& image, OcrCallback callback) {
+  Q_UNUSED(image);
+  callback({}, QObject::tr("Linux 暂未内置 OCR 引擎（tesseract 集成待后续版本）。"));
+}
+
 }  // namespace sticky::platform
