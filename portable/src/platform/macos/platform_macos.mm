@@ -182,8 +182,7 @@ bool setAutostart(bool enabled) {
     if (item) CFRelease(item);
   } else {
     UInt32 seed = 0;
-    LSSharedFileListSnapshotRef snapshot =
-        LSSharedFileListCopySnapshot(list, &seed);
+    CFArrayRef snapshot = LSSharedFileListCopySnapshot(list, &seed);
     ok = true;
     if (snapshot) {
       for (CFIndex i = 0; i < CFArrayGetCount(snapshot); ++i) {
@@ -215,7 +214,7 @@ bool isAutostart() {
   NSURL* appUrl = sharedApplicationUrl();
   bool found = false;
   UInt32 seed = 0;
-  LSSharedFileListSnapshotRef snapshot = LSSharedFileListCopySnapshot(list, &seed);
+  CFArrayRef snapshot = LSSharedFileListCopySnapshot(list, &seed);
   if (snapshot) {
     for (CFIndex i = 0; i < CFArrayGetCount(snapshot); ++i) {
       LSSharedFileListItemRef item = reinterpret_cast<LSSharedFileListItemRef>(
