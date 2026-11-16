@@ -108,7 +108,10 @@ dpkg-deb --build --root-owner-group "$DEB" \
   "$OUT_DIR/StickySnap-linux-x86_64.deb" >/dev/null
 
 echo "==> checksums"
-(cd "$OUT_DIR" && sha256sum StickySnap-linux-* > StickySnap-linux-x86_64-sha256.txt)
+(cd "$OUT_DIR" && sha256sum \
+  StickySnap-linux-x86_64.AppImage \
+  StickySnap-linux-x86_64.deb \
+  StickySnap-linux-x86_64.tar.gz > StickySnap-linux-x86_64-sha256.txt)
 
 echo "==> assets:"
 ls -lh "$OUT_DIR"/StickySnap-linux-*
