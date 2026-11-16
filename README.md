@@ -7,7 +7,7 @@
 **把截图钉在桌面上。**<br>
 *Pin a screenshot to your desktop.*
 
-Snipaste 式截图 + 贴图工具 · Windows 原生 + Windows / macOS / Linux Qt 6 全功能版 · 免费无广告 · 纯本地
+Snipaste 式截图 + 贴图工具 · Windows 原生版 + 三平台 Qt 6 全功能版 · 免费无广告 · 纯本地
 
 [官网](https://carlopenlab.github.io/StickySnap/) · [下载](https://github.com/CarlOpenLab/StickySnap/releases) · [产品文档](docs/PRD-M0.md) · [问题反馈](https://github.com/CarlOpenLab/StickySnap/issues)
 
@@ -38,7 +38,7 @@ StickySnap 是一个把「贴图」当作第一优先级刚需的截图工具。
 | 平台 | 实现 | 状态 |
 |---|---|---|
 | Windows 10/11 x64 | C++17 / Win32 | ✅ M0 参考实现（冻结，单 exe） |
-| Windows 10+ / macOS 14+ / Linux (X11) | C++20 / Qt 6.8 | ✅ **Qt 全功能版**（CI 自动构建，所有新功能只在这里） |
+| Windows 10+ / macOS 14+ / Linux (X11) | C++20 / Qt 6.8 / 6.9 | ✅ **Qt 全功能版**（CI 自动构建，所有新功能只在这里） |
 
 Qt 版与 Windows 原生版共享同一套选区、标注、设置和会话模型（`portable/src/core`）；Windows 数据目录完全一致（`%APPDATA%\StickySnap`），两种版本可互换使用同一份配置与贴图。
 
