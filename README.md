@@ -94,13 +94,13 @@ StickySnap 的取舍很明确：**贴图优先**。长截图这类能力还没�
 |---|---|---|
 | Windows 10+ | [StickySnap-setup.exe](https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-setup.exe)（Qt 全功能版） | [Qt 全功能 .zip](https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-windows-qt-x64.zip) · [原生 M0 .zip](https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-windows-x64.zip) |
 | macOS 14+ | [StickySnap-macos.dmg](https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-macos.dmg)（Apple Silicon + Intel） | [.zip](https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-macos-universal.zip) |
-| Linux (X11) | [.AppImage](https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-linux-x86_64.AppImage) · [.deb](https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-linux-x86_64.deb) | [.tar.gz](https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-linux-x86_64.tar.gz) |
+| Linux (X11, Ubuntu 22.04+) | [.AppImage](https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-linux-x86_64.AppImage) · [.deb](https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-linux-x86_64.deb) | [.tar.gz](https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-linux-x86_64.tar.gz) |
 
 安装方式：
 
 - **Windows**：双击 `StickySnap-setup.exe`。按当前用户安装，无需管理员权限；可选桌面快捷方式与开机启动。
 - **macOS**：打开 DMG，把 StickySnap 拖进「应用程序」。
-- **Linux**：AppImage 下载后 `chmod +x` 直接运行；Debian / Ubuntu 可执行 `sudo apt install ./StickySnap-linux-x86_64.deb`。目前只支持 X11，Wayland 会话无法抓屏。
+- **Linux**：AppImage 下载后 `chmod +x`，并安装 `libfuse2`（Ubuntu 24.04+ 的包名为 `libfuse2t64`）；Debian / Ubuntu 也可执行 `sudo apt install ./StickySnap-linux-x86_64.deb`。支持 Ubuntu 22.04+ / Debian 12+，仅 X11 会话，Wayland 无法抓屏。
 
 校验和：[SHA256SUMS.txt](https://github.com/CarlOpenLab/StickySnap/releases/latest/download/SHA256SUMS.txt)。全部历史版本见 [Releases](https://github.com/CarlOpenLab/StickySnap/releases)。
 
@@ -216,7 +216,7 @@ ctest --test-dir build --output-on-failure
 |---|---|---|
 | [`windows.yml`](.github/workflows/windows.yml) | push / PR / 手动 | 构建原生版 + Qt 版（windeployqt + Inno Setup 安装器），各跑 `ctest` 并上传 artifact |
 | [`macos.yml`](.github/workflows/macos.yml) | push / PR / 手动 | 构建 universal Qt 版、跑 Qt Test、macdeployqt + ad-hoc 签名并上传 zip/DMG artifact |
-| [`linux.yml`](.github/workflows/linux.yml) | push / PR / 手动 | 构建 Linux (X11) Qt 版、跑 Qt Test、打包 AppImage + deb + tar.gz |
+| [`linux.yml`](.github/workflows/linux.yml) | push / PR / 手动 | 构建 Linux (X11, Ubuntu 22.04) Qt 版、跑 Qt Test、打包 AppImage + deb + tar.gz |
 | [`release.yml`](.github/workflows/release.yml) | 推送 `v*` tag / 手动指定 tag | 构建 Windows（原生 zip + Qt zip + 安装器）、macOS（universal zip + DMG）、Linux（AppImage + deb + tar.gz），并生成 `SHA256SUMS.txt` |
 | [`pages.yml`](.github/workflows/pages.yml) | `site/` 变更 / 手动 | 部署落地页到 GitHub Pages |
 
@@ -258,10 +258,10 @@ portable/            Qt 6 跨平台版
 
 - **M0（✅ 已完成）**：贴图成立的最小集 + M0.6 打磨（边框、热键组合、设置、自启、单测），见上表
 - **M1（✅ 已完成，Qt 版）**：贴图标注与二次编辑、GIF/APNG 动图贴图、文本/颜色贴图、贴图分组、OCR（Windows.Media.Ocr / Vision）、UI 元素级吸附（UIA / AX）、macOS 功能对齐（自启、托盘左键）
-- **M2（✅ 部分完成）**：仅在当前桌面显示（macOS）、Solo 模式、批量操作、Linux (X11)；AI 功能与 Wayland 支持待做
+- **M2（✅ 部分完成）**：仅在当前桌面显示（macOS）、Solo 模式、批量操作；AI 功能与 Wayland 支持待做
 - **平台**：Windows ✅（原生 + Qt）→ macOS ✅（Qt）→ Linux ✅（X11，Qt）
 
-已知限制：Linux 走 X11（Wayland 不支持）；Linux 无 OCR 与元素级吸附（at-spi 集成待做）；Windows 贴图天然跨虚拟桌面（不提供按桌面隐藏）；macOS 包未公证（`xattr -cr` 处理 Gatekeeper）。
+已知限制：Linux 走 X11（Wayland 不支持），AppImage 依赖 libfuse2，二进制面向 Ubuntu 22.04+ / Debian 12+；Linux 无 OCR 与元素级吸附（at-spi 集成待做）；Windows 贴图天然跨虚拟桌面（不提供按桌面隐藏）；macOS 包未公证（`xattr -cr` 处理 Gatekeeper）。
 
 详细验收标准见 [docs/PRD-M0.md](docs/PRD-M0.md)。
 
