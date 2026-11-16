@@ -37,16 +37,24 @@ jobs:
       - name: Codesign (ad-hoc)
         run: codesign --force --deep --sign - build/StickySnap.app
 
-      - name: Package
-        run: ditto -c -k --sequesterRsrc --keepParent build/StickySnap.app StickySnap-macos-universal.zip
+      - name: Package zip and DMG
+        run: |
+          set -euo pipefail
+          ditto -c -k --sequesterRsrc --keepParent build/StickySnap.app \
+            StickySnap-macos-universal.zip
+          mkdir dmg-staging
+          cp -R build/StickySnap.app dmg-staging/
+          ln -s /Applications dmg-staging/Applications
+          hdiutil create -volname "StickySnap ci" \
+            -srcfolder dmg-staging -ov -format UDZO StickySnap-macos.dmg
+          hdiutil verify StickySnap-macos.dmg
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: StickySnap-macos-universal
-          path: StickySnap-macos-universal.zip
+          path: |
+            StickySnap-macos-universal.zip
+            StickySnap-macos.dmg
 
-# 后续：
-#   1. Developer ID 签名 + notarization（需 Apple Developer 账号）
-#   2. hdiutil 出 DMG
-#   3. 如只需 Apple Silicon 可去掉 universal（CMAKE_OSX_ARCHITECTURES）
+# 后续：Developer ID 签名 + notarization（需 Apple Developer 账号）

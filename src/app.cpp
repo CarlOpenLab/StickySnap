@@ -265,7 +265,7 @@ void App::OpenLog() {
 
 void App::ShowAbout() {
   MessageBoxW(hwnd_,
-              L"StickySnap 0.0.1 (M0.6)\n\n"
+              L"StickySnap 0.0.2 (M0.6)\n\n"
               L"截图即贴图：F1 截图、Enter 贴桌面、F3 贴剪贴板。\n"
               L"纯本地、不联网、无广告。\n\n"
               L"贴图可拖动、滚轮缩放、Ctrl+滚轮调透明度、右键菜单。",

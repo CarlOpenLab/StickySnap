@@ -6,3 +6,5 @@ build-qt/
 test/out/
 __pycache__/
 Thumbs.db
+.workbuddy/
+dist/

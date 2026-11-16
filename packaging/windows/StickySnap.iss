@@ -3,7 +3,7 @@
 ; 期望 working directory 为仓库根目录，Qt 部署产物位于 build-qt\deploy\
 
 #ifndef AppVersion
-#define AppVersion "0.0.1"
+#define AppVersion "0.0.2"
 #endif
 
 [Setup]
@@ -16,12 +16,19 @@ DefaultDirName={localappdata}\Programs\StickySnap
 DefaultGroupName=StickySnap
 ; 按用户安装（无需管理员权限），贴图工具不需要全机器部署。
 PrivilegesRequired=lowest
-SetupIconFile=res\app.ico
+MinVersion=10.0
+ArchitecturesAllowed=x64compatible
+SetupIconFile=..\..\res\app.ico
 UninstallDisplayIcon={app}\StickySnap.exe
-OutputDir=build-qt
+OutputDir=..\..\build-qt
 OutputBaseFilename=StickySnap-setup
 Compression=lzma2
 SolidCompression=yes
+VersionInfoVersion={#AppVersion}.0
+VersionInfoCompany=CarlOpenLab
+VersionInfoDescription=StickySnap installer
+VersionInfoProductName=StickySnap
+VersionInfoProductVersion={#AppVersion}
 ArchitecturesInstallIn64BitMode=x64compatible
 WizardStyle=modern
 
@@ -30,7 +37,7 @@ Name: "desktopicon"; Description: "创建桌面快捷方式(&D)"; GroupDescripti
 Name: "autostart"; Description: "开机自动运行 StickySnap(&A)"; GroupDescription: "附加任务："
 
 [Files]
-Source: "build-qt\deploy\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\..\build-qt\deploy\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\StickySnap"; Filename: "{app}\StickySnap.exe"

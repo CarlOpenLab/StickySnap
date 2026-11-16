@@ -6,8 +6,8 @@ endif()
 
 project(StickySnapPortable LANGUAGES CXX)
 
-# 版本号：默认 0.0.1，release CI 用 -DSTICKYSNAP_VERSION=<tag> 覆盖，注入 Info.plist
-set(STICKYSNAP_VERSION "0.0.1" CACHE STRING "StickySnap app version")
+# 版本号：默认 0.0.2，release CI 用 -DSTICKYSNAP_VERSION=<tag> 覆盖，注入 Info.plist
+set(STICKYSNAP_VERSION "0.0.2" CACHE STRING "StickySnap app version")
 set(MACOSX_BUNDLE_SHORT_VERSION_STRING "${STICKYSNAP_VERSION}")
 set(MACOSX_BUNDLE_BUNDLE_VERSION "${STICKYSNAP_VERSION}")
 

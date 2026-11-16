@@ -1,15 +1,40 @@
-# StickySnap Release —— 推送 v* tag 时构建并发布 Windows / macOS 包
+# StickySnap Release —— 推送 v* tag（或手动指定 tag）时构建三平台安装包
 name: release
 
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to build and upload into (e.g. v0.0.2)
+        required: true
 
 permissions:
   contents: write
 
+env:
+  GH_TOKEN: ${{ github.token }}
+  GH_REPO: ${{ github.repository }}
+  # push tag 用 ref_name；workflow_dispatch 没有 tag ref，用输入值。
+  RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+
 jobs:
-  release-windows:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create the release
+        run: |
+          set -euo pipefail
+          tag="$RELEASE_TAG"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "release $tag already exists"
+          else
+            gh release create "$tag" --title "$tag" --generate-notes --verify-tag
+          fi
+
+  release-windows-native:
+    needs: prepare
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,74 +45,25 @@ jobs:
       - name: Build
         run: cmake --build build --config Release
 
-      - name: Package
-        shell: pwsh
-        run: Compress-Archive -Path build/Release/StickySnap.exe -DestinationPath StickySnap-windows-x64.zip
-
-      - name: Publish release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: StickySnap-windows-x64.zip
-          generate_release_notes: true
-
-  release-macos:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Derive version from tag
-        shell: bash
-        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
-
-      - name: Install Qt 6.9
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: '6.9.2'
-          target: 'desktop'
-          cache: true
-
-      - name: Configure (universal, macOS 14+)
-        run: cmake -S portable -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DSTICKYSNAP_VERSION=$version
-
-      - name: Build
-        run: cmake --build build
-
       - name: Test
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build -C Release --output-on-failure
 
-      - name: Deploy Qt frameworks
-        run: macdeployqt build/StickySnap.app
-
-      - name: Codesign (ad-hoc)
-        run: codesign --force --deep --sign - build/StickySnap.app
-
-      - name: Package zip
-        run: ditto -c -k --sequesterRsrc --keepParent build/StickySnap.app StickySnap-macos-universal.zip
-
-      - name: Package DMG
+      - name: Package portable zip
+        shell: pwsh
         run: |
-          mkdir dmg-staging
-          cp -R build/StickySnap.app dmg-staging/
-          ln -s /Applications dmg-staging/Applications
-          hdiutil create -volname StickySnap -srcfolder dmg-staging -ov -format UDZO StickySnap-macos.dmg
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Compress-Archive -Path build/Release/StickySnap.exe `
+            -DestinationPath dist/StickySnap-windows-x64.zip -Force
 
-      # generate_release_notes 由 release-windows 生成，此处只追加资产
-      - name: Publish release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            StickySnap-macos-universal.zip
-            StickySnap-macos.dmg
+      - name: Upload assets
+        shell: pwsh
+        run: gh release upload "$env:RELEASE_TAG" dist/StickySnap-windows-x64.zip --clobber
 
-  # Qt portable 全功能版：portable zip + Inno Setup 安装器
   release-windows-qt:
+    needs: prepare
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Derive version from tag
-        shell: pwsh
-        run: "echo \"version=$($env:GITHUB_REF_NAME.Substring(1))\" >> $env:GITHUB_ENV"
 
       - name: Install Qt 6.8
         uses: jurplel/install-qt-action@v4
@@ -98,7 +74,13 @@ jobs:
 
       - name: Configure
         shell: pwsh
-        run: cmake -S portable -B build-qt -DCMAKE_BUILD_TYPE=Release -DSTICKYSNAP_VERSION=$env:version
+        env:
+          APP_VERSION: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          $version = $env:APP_VERSION.TrimStart('v')
+          echo "version=$version" >> $env:GITHUB_ENV
+          cmake -S portable -B build-qt -DCMAKE_BUILD_TYPE=Release `
+            -DSTICKYSNAP_VERSION=$version
 
       - name: Build
         shell: pwsh
@@ -116,25 +98,90 @@ jobs:
           Copy-Item build-qt/Release/*.dll build-qt/deploy/ -ErrorAction SilentlyContinue
           windeployqt --release --compiler-runtime --no-translations build-qt/deploy/StickySnap.exe
 
-      - name: Package zip
+      - name: Package portable zip
         shell: pwsh
-        run: Compress-Archive -Path build-qt/deploy/* -DestinationPath StickySnap-windows-qt-x64.zip
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Compress-Archive -Path build-qt/deploy/* `
+            -DestinationPath dist/StickySnap-windows-qt-x64.zip -Force
 
       - name: Build installer (Inno Setup)
         shell: pwsh
+        env:
+          APP_VERSION: ${{ github.event.inputs.tag || github.ref_name }}
         run: |
-          choco install innosetup -y --no-progress
-          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DAppVersion=$env:version packaging/windows/StickySnap.iss
+          $version = $env:APP_VERSION.TrimStart('v')
+          choco upgrade innosetup -y --no-progress
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          if (!(Test-Path $iscc)) { throw "ISCC.exe not found at $iscc" }
+          & $iscc "/DAppVersion=$version" 'packaging\windows\StickySnap.iss'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Copy-Item build-qt/StickySnap-setup.exe dist/
 
-      # generate_release_notes 由 release-windows 生成，此处只追加资产
-      - name: Publish release
-        uses: softprops/action-gh-release@v2
+      - name: Upload assets
+        shell: pwsh
+        run: |
+          gh release upload "$env:RELEASE_TAG" `
+            dist/StickySnap-windows-qt-x64.zip `
+            dist/StickySnap-setup.exe --clobber
+
+  release-macos:
+    needs: prepare
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt 6.9
+        uses: jurplel/install-qt-action@v4
         with:
-          files: |
-            StickySnap-windows-qt-x64.zip
-            build-qt/StickySnap-setup.exe
+          version: '6.9.2'
+          target: 'desktop'
+          cache: true
+
+      - name: Configure (universal, macOS 14+)
+        env:
+          RELEASE_VERSION: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          version="${RELEASE_VERSION#v}"
+          cmake -S portable -B build -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
+            -DSTICKYSNAP_VERSION="$version"
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Deploy Qt frameworks
+        run: macdeployqt build/StickySnap.app -always-overwrite
+
+      # ad-hoc：没有 Developer ID 证书时至少保证 Apple Silicon 能启动。
+      - name: Codesign (ad-hoc)
+        run: codesign --force --deep --sign - build/StickySnap.app
+
+      - name: Package zip and DMG
+        env:
+          RELEASE_VERSION: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          version="${RELEASE_VERSION#v}"
+          ditto -c -k --sequesterRsrc --keepParent build/StickySnap.app \
+            StickySnap-macos-universal.zip
+          mkdir dmg-staging
+          cp -R build/StickySnap.app dmg-staging/
+          ln -s /Applications dmg-staging/Applications
+          hdiutil create -volname "StickySnap ${version}" \
+            -srcfolder dmg-staging -ov -format UDZO StickySnap-macos.dmg
+          hdiutil verify StickySnap-macos.dmg
+
+      - name: Upload assets
+        run: |
+          gh release upload "$RELEASE_TAG" \
+            StickySnap-macos-universal.zip StickySnap-macos.dmg --clobber
 
   release-linux:
+    needs: prepare
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -145,7 +192,8 @@ jobs:
           sudo apt-get install -y \
             libx11-dev libxext-dev libgl1-mesa-dev libegl1-mesa-dev \
             libxkbcommon0 libxkbcommon-x11-0 libfontconfig1 libdbus-1-3 \
-            libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1
+            libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 \
+            desktop-file-utils
 
       - name: Install Qt 6.8
         uses: jurplel/install-qt-action@v4
@@ -163,24 +211,52 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure
 
-      - name: Package portable tar.gz
+      - name: Package AppImage, deb and portable tar.gz
+        env:
+          RELEASE_VERSION: ${{ github.event.inputs.tag || github.ref_name }}
         run: |
-          mkdir -p StickySnap-linux/lib
-          cp build/StickySnap StickySnap-linux/
-          SKIP='libc\.so|libm\.so|ld-linux|libpthread|libdl|librt|libgcc_s|libstdc\+\+'
-          ldd build/StickySnap | awk '/=> \// {print $3}' | grep -Ev "$SKIP" | while read lib; do
-            cp "$lib" StickySnap-linux/lib/
-          done
-          cat > StickySnap-linux/run.sh <<'EOS'
-          #!/bin/sh
-          cd "$(dirname "$0")"
-          export LD_LIBRARY_PATH="$PWD/lib:$LD_LIBRARY_PATH"
-          exec ./StickySnap "$@"
-          EOS
-          chmod +x StickySnap-linux/run.sh StickySnap-linux/StickySnap
-          tar -czf StickySnap-linux-x64.tar.gz StickySnap-linux
+          version="${RELEASE_VERSION#v}"
+          chmod +x packaging/linux/package.sh
+          packaging/linux/package.sh build dist "$version"
 
-      - name: Publish release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: StickySnap-linux-x64.tar.gz
+      - name: Verify Linux packages
+        run: |
+          set -euo pipefail
+          desktop-file-validate packaging/linux/stickysnap.desktop
+          test -x dist/StickySnap-linux-x86_64.AppImage
+          dist/StickySnap-linux-x86_64.AppImage --appimage-extract >/dev/null
+          test -x squashfs-root/AppRun
+          rm -rf squashfs-root
+          dpkg-deb --info dist/StickySnap-linux-x86_64.deb | grep -E 'Package:|Version:|Architecture:'
+          tar -tzf dist/StickySnap-linux-x86_64.tar.gz | grep -q 'StickySnap-linux/AppRun'
+
+      - name: Upload assets
+        run: |
+          gh release upload "$RELEASE_TAG" \
+            dist/StickySnap-linux-x86_64.AppImage \
+            dist/StickySnap-linux-x86_64.deb \
+            dist/StickySnap-linux-x86_64.tar.gz \
+            dist/StickySnap-linux-x86_64-sha256.txt --clobber
+
+  checksums:
+    needs:
+      - release-windows-native
+      - release-windows-qt
+      - release-macos
+      - release-linux
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate combined SHA-256 checksums
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          gh release download "$RELEASE_TAG" --dir dist \
+            --pattern 'StickySnap-*.exe' \
+            --pattern 'StickySnap-*.zip' \
+            --pattern 'StickySnap-*.dmg' \
+            --pattern 'StickySnap-*.AppImage' \
+            --pattern 'StickySnap-*.deb' \
+            --pattern 'StickySnap-*.tar.gz'
+          (cd dist && sha256sum StickySnap-* > SHA256SUMS.txt)
+          cat dist/SHA256SUMS.txt
+          gh release upload "$RELEASE_TAG" dist/SHA256SUMS.txt --clobber

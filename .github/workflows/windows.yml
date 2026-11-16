@@ -57,25 +57,34 @@ jobs:
         shell: pwsh
         run: ctest --test-dir build-qt -C Release --output-on-failure
 
-      # 把 Qt DLL 与 VC 运行库复制到 exe 旁边，让 zip 在任何机器可直接运行
+      # 把 Qt DLL 与 VC 运行库复制到 exe 旁边，供 zip 与安装器共用
       - name: Deploy Qt runtime
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Path StickySnap-windows-qt | Out-Null
-          Copy-Item build-qt/Release/StickySnap.exe StickySnap-windows-qt/
-          Copy-Item build-qt/Release/*.dll StickySnap-windows-qt/ -ErrorAction SilentlyContinue
-          windeployqt --release --compiler-runtime --no-translations StickySnap-windows-qt/StickySnap.exe
+          New-Item -ItemType Directory -Path build-qt/deploy | Out-Null
+          Copy-Item build-qt/Release/StickySnap.exe build-qt/deploy/
+          Copy-Item build-qt/Release/*.dll build-qt/deploy/ -ErrorAction SilentlyContinue
+          windeployqt --release --compiler-runtime --no-translations build-qt/deploy/StickySnap.exe
 
       - name: Package
         shell: pwsh
-        run: Compress-Archive -Path StickySnap-windows-qt -DestinationPath StickySnap-windows-qt-x64.zip
+        run: Compress-Archive -Path build-qt/deploy/* -DestinationPath StickySnap-windows-qt-x64.zip
+
+      - name: Build installer (Inno Setup)
+        shell: pwsh
+        run: |
+          choco upgrade innosetup -y --no-progress
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          if (!(Test-Path $iscc)) { throw "ISCC.exe not found at $iscc" }
+          & $iscc '/DAppVersion=0.0.2' 'packaging\windows\StickySnap.iss'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: StickySnap-windows-qt-x64
-          path: StickySnap-windows-qt-x64.zip
+          path: |
+            StickySnap-windows-qt-x64.zip
+            build-qt/StickySnap-setup.exe
 
-# 后续：
-#   1. Inno Setup 安装包（release.yml）
-#   2. Linux job：AppImage / deb（待 portable 增加 Linux 平台层）
+# 后续：macOS Developer ID 签名 / 公证；Wayland 支持

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>StickySnap — 把截图钉在桌面上 / Pin a screenshot to your desktop</title>
-<meta name="description" content="StickySnap：Snipaste 式截图与贴图工具。F1 截图、Enter 贴图、F3 贴剪贴板，Windows 原生 + macOS Qt 预览，免费、纯本地。">
+<meta name="description" content="StickySnap：Snipaste 式截图与贴图工具。F1 截图、Enter 贴图、F3 贴剪贴板，Windows / macOS / Linux 三平台安装包，免费、纯本地。">
 <meta name="theme-color" content="#0A0B0E">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
@@ -12,7 +12,7 @@
 <link rel="canonical" href="https://carlopenlab.github.io/StickySnap/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="StickySnap — 把截图钉在桌面上">
-<meta property="og:description" content="F1 截图，Enter 贴图，F3 贴剪贴板。Windows 原生 + macOS Qt 预览，免费、纯本地。">
+<meta property="og:description" content="F1 截图，Enter 贴图，F3 贴剪贴板。Windows / macOS / Linux 安装包，免费、纯本地。">
 <meta property="og:url" content="https://carlopenlab.github.io/StickySnap/">
 <meta property="og:image" content="https://carlopenlab.github.io/StickySnap/og.png">
 <meta property="og:image:width" content="1200">
@@ -235,6 +235,29 @@ figcaption{font-size:14px;color:var(--muted);line-height:1.6}
 .cmp-na{color:rgba(226,231,240,.3)}
 .cmp-legend{margin-top:12px;font-family:var(--font-mono);font-size:12px;letter-spacing:.3px;color:var(--muted)}
 
+/* ---------- download ---------- */
+.dl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(16px,2.5vw,28px)}
+.dl-card{display:flex;flex-direction:column;gap:16px;padding:26px 24px;border-radius:var(--radius);border:1px solid var(--line);background:var(--card);min-width:0}
+.dl-head{display:flex;align-items:center;gap:12px}
+.dl-ic{width:42px;height:42px;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:none}
+.dl-ic svg{width:21px;height:21px}
+.dl-card h3{font-size:17px;font-weight:700;line-height:1.3}
+.dl-os{display:block;font-family:var(--font-mono);font-size:11px;letter-spacing:.5px;color:var(--muted);margin-top:3px}
+.dl-actions{display:flex;flex-direction:column;gap:9px}
+.dl-btn{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border-radius:9px;border:1px solid var(--line);text-decoration:none;font-size:14px;font-weight:600;line-height:1.3;transition:border-color .15s ease,background .15s ease,transform .15s ease}
+.dl-btn:hover{border-color:var(--muted);transform:translateY(-1px)}
+.dl-btn .fmt{font-family:var(--font-mono);font-size:11.5px;font-weight:500;color:var(--muted);flex:none}
+.dl-btn.primary{background:var(--accent);border-color:transparent;color:var(--accent-fg);box-shadow:0 8px 22px rgba(47,111,237,.26)}
+.dl-btn.primary:hover{background:color-mix(in srgb,var(--accent) 88%,white)}
+.dl-btn.primary .fmt{color:rgba(255,255,255,.72)}
+.dl-alt{font-size:12.5px;color:var(--muted)}
+.dl-alt a{color:var(--muted);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line)}
+.dl-alt a:hover{color:var(--fg);text-decoration-color:var(--muted)}
+.dl-note{margin-top:auto;font-size:12.5px;color:var(--muted);line-height:1.6}
+.dl-foot{margin-top:22px;display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center;font-family:var(--font-mono);font-size:12px;letter-spacing:.2px;color:var(--muted)}
+.dl-foot a{color:var(--accent-2);text-decoration:none}
+.dl-foot a:hover{text-decoration:underline;text-underline-offset:3px}
+
 /* ---------- roadmap ---------- */
 .roadmap ol{list-style:none;display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(16px,2.5vw,28px)}
 .road{display:flex;flex-direction:column;align-items:flex-start;gap:12px;padding:24px;border-radius:var(--radius);border:1px solid var(--line);background:var(--card)}
@@ -278,6 +301,7 @@ figcaption{font-size:14px;color:var(--muted);line-height:1.6}
   .ui-grid{grid-template-columns:1fr}
   .features ul{grid-template-columns:repeat(2,1fr)}
   .roadmap ol{grid-template-columns:repeat(2,1fr)}
+  .dl-grid{grid-template-columns:1fr}
 }
 @media (max-width:700px){
   :root{--w:calc(100% - 36px)}
@@ -311,7 +335,7 @@ figcaption{font-size:14px;color:var(--muted);line-height:1.6}
         StickySnap
       </a>
       <span class="nav-spacer"></span>
-      <span class="ver-chip"><span class="bi"><span class="zh">v0.0.1 · M0 · Windows / macOS 预览</span><span class="en">v0.0.1 · M0 · Windows / macOS preview</span></span></span>
+      <span class="ver-chip"><span class="bi"><span class="zh">v0.0.2 · M0 · Windows / macOS / Linux</span><span class="en">v0.0.2 · M0 · Windows / macOS / Linux</span></span></span>
       <a class="nav-gh" href="https://github.com/CarlOpenLab/StickySnap" title="GitHub 仓库">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m8 8-4 4 4 4"></path><path d="m16 8 4 4-4 4"></path></svg>
         GitHub
@@ -329,19 +353,19 @@ figcaption{font-size:14px;color:var(--muted);line-height:1.6}
     <section class="hero" data-screen-label="hero">
       <div class="wrap">
         <div class="hero-copy">
-          <span class="eyebrow"><i aria-hidden="true"></i><span class="bi"><span class="zh">Windows 原生 · macOS Qt 预览 · 免费无广告 · 纯本地</span><span class="en">WINDOWS NATIVE · MACOS QT PREVIEW · FREE · LOCAL</span></span></span>
+          <span class="eyebrow"><i aria-hidden="true"></i><span class="bi"><span class="zh">Windows 原生 · macOS / Linux Qt · 免费无广告 · 纯本地</span><span class="en">WINDOWS NATIVE · MACOS / LINUX QT · FREE · LOCAL</span></span></span>
           <h1><span class="bi"><span class="zh">把截图<br>钉在桌面上。</span><span class="en">Pin a screenshot<br>to your desktop.</span></span></h1>
           <p class="lede"><span class="bi"><span class="zh">F1 框住屏幕,窗口自动吸附;Enter 一键贴上桌面;F3 随时把剪贴板贴出来。贴图常驻——重启电脑也还在。</span><span class="en">Press F1 to frame the screen — windows snap under your cursor. Enter pins the shot to your desktop. F3 pins whatever is on your clipboard. Pins stay put, even after a reboot.</span></span></p>
           <div class="btn-row">
-            <a class="btn btn-primary" href="https://github.com/CarlOpenLab/StickySnap" title="GitHub 仓库">
-              <span class="bi"><span class="zh">在 GitHub 上了解它</span><span class="en">Explore on GitHub</span></span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
+            <a class="btn btn-primary" href="#download" title="下载安装包">
+              <span class="bi"><span class="zh">下载安装包</span><span class="en">Download installers</span></span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"></path><path d="m6 10 6 6 6-6"></path><path d="M5 20h14"></path></svg>
             </a>
-            <a class="btn btn-ghost" href="https://github.com/CarlOpenLab/StickySnap/releases" title="下载 Windows 0.0.1 体验版">
-              <span class="bi"><span class="zh">下载 Windows 体验版</span><span class="en">Download for Windows</span></span>
+            <a class="btn btn-ghost" href="https://github.com/CarlOpenLab/StickySnap" title="GitHub 仓库">
+              <span class="bi"><span class="zh">在 GitHub 上了解它</span><span class="en">Explore on GitHub</span></span>
             </a>
           </div>
-          <p class="platform-note"><span class="bi"><span class="zh">Windows 10/11 x64 · macOS 14+（Qt 预览，源码构建）</span><span class="en">WINDOWS 10/11 X64 · MACOS 14+ (QT PREVIEW, BUILD FROM SOURCE)</span></span></p>
+          <p class="platform-note"><span class="bi"><span class="zh">Windows 10/11 x64 · macOS 14+ · Linux X11 · 安装包与便携版</span><span class="en">WINDOWS 10/11 X64 · MACOS 14+ · LINUX X11 · INSTALLERS &amp; PORTABLE BUILDS</span></span></p>
           <div class="keys" aria-label="快捷键">
             <span class="k"><kbd>F1</kbd><span class="bi"><span class="zh">截图</span><span class="en">capture</span></span></span>
             <span class="k"><kbd>Enter</kbd><span class="bi"><span class="zh">贴图</span><span class="en">pin</span></span></span>
@@ -635,6 +659,85 @@ figcaption{font-size:14px;color:var(--muted);line-height:1.6}
       </div>
     </section>
 
+    <!-- ================= DOWNLOAD ================= -->
+    <section class="download" id="download" data-screen-label="download">
+      <div class="wrap">
+        <div class="sec-head">
+          <h2><span class="bi"><span class="zh">下载,一次装好。</span><span class="en">Download once, install like an app.</span></span></h2>
+          <p class="sec-sub"><span class="bi"><span class="zh">Windows 安装器、macOS 通用 DMG、Linux AppImage 与 deb——都是现成的安装包,不用编译。</span><span class="en">A Windows installer, a universal macOS DMG, and Linux AppImage/deb builds — ready to install, no compiling.</span></span></p>
+        </div>
+        <div class="dl-grid">
+          <article class="dl-card">
+            <div class="dl-head">
+              <span class="dl-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5 10.5 4v7.5H3Z"></path><path d="M13 3.7 21 2.5v9H13Z"></path><path d="M3 13h7.5v7.5L3 19Z"></path><path d="M13 13h8v8.5L13 20.5Z"></path></svg></span>
+              <div>
+                <h3><span class="bi"><span class="zh">Windows</span><span class="en">Windows</span></span></h3>
+                <span class="dl-os">WINDOWS 10/11 · X64</span>
+              </div>
+            </div>
+            <div class="dl-actions">
+              <a class="dl-btn primary" href="https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-setup.exe">
+                <span><span class="bi"><span class="zh">安装版</span><span class="en">Installer</span></span></span><span class="fmt">EXE</span>
+              </a>
+              <a class="dl-btn" href="https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-windows-qt-x64.zip">
+                <span><span class="bi"><span class="zh">便携版(Qt 全功能)</span><span class="en">Portable (full Qt build)</span></span></span><span class="fmt">ZIP</span>
+              </a>
+              <a class="dl-btn" href="https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-windows-x64.zip">
+                <span><span class="bi"><span class="zh">原生 M0 版(约 1 MB)</span><span class="en">Native M0 build (~1 MB)</span></span></span><span class="fmt">ZIP</span>
+              </a>
+            </div>
+            <p class="dl-note"><span class="bi"><span class="zh">安装版按当前用户安装,无需管理员权限;可选桌面快捷方式与开机启动。</span><span class="en">The installer is per-user, no admin rights needed, with optional desktop shortcut and launch-at-login.</span></span></p>
+          </article>
+
+          <article class="dl-card">
+            <div class="dl-head">
+              <span class="dl-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 7.5c0-2.2-1.6-3.5-3.4-3.5-1.5 0-2.7.7-3.7 2.1-.6-1.3-1.6-2.1-2.9-2.1-2 0-3.5 1.7-3.5 4.2 0 4.4 4.8 9.3 6.4 9.3.8 0 1.2-.5 2-.5s1.2.5 2 .5c1.6 0 6.4-4.9 6.4-9.3 0-2.5-1.5-4.2-3.4-4.2-1.3 0-2.3.8-2.9 2.1-.9-1.4-2.1-2.1-3.6-2.1"></path></svg></span>
+              <div>
+                <h3><span class="bi"><span class="zh">macOS</span><span class="en">macOS</span></span></h3>
+                <span class="dl-os">MACOS 14+ · UNIVERSAL</span>
+              </div>
+            </div>
+            <div class="dl-actions">
+              <a class="dl-btn primary" href="https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-macos.dmg">
+                <span><span class="bi"><span class="zh">DMG 安装镜像</span><span class="en">DMG installer</span></span></span><span class="fmt">DMG</span>
+              </a>
+              <a class="dl-btn" href="https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-macos-universal.zip">
+                <span><span class="bi"><span class="zh">通用 zip</span><span class="en">Universal zip</span></span></span><span class="fmt">ZIP</span>
+              </a>
+            </div>
+            <p class="dl-note"><span class="bi"><span class="zh">Apple Silicon 与 Intel 通用。ad-hoc 签名,首次打开若被拦截,右键「打开」或在终端执行 <code>xattr -cr /Applications/StickySnap.app</code>。</span><span class="en">Universal for Apple Silicon and Intel. Ad-hoc signed — if macOS blocks the first launch, right-click Open or run <code>xattr -cr /Applications/StickySnap.app</code>.</span></span></p>
+          </article>
+
+          <article class="dl-card">
+            <div class="dl-head">
+              <span class="dl-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5c-3.8 0-6 2.3-6 5.2 0 2.6 1.7 4.2 4 4.9v2.1c-2.8.5-4.7 1.7-4.7 3.2 0 1.9 3 3.3 6.7 3.3s6.7-1.4 6.7-3.3c0-1.5-1.9-2.7-4.7-3.2v-2.1c2.3-.7 4-2.3 4-4.9 0-2.9-2.2-5.2-6-5.2Z"></path><path d="M9 8.7c0-1.5 1.2-2.6 3-2.6s3 1.1 3 2.6"></path></svg></span>
+              <div>
+                <h3><span class="bi"><span class="zh">Linux</span><span class="en">Linux</span></span></h3>
+                <span class="dl-os">X11 · X86_64</span>
+              </div>
+            </div>
+            <div class="dl-actions">
+              <a class="dl-btn primary" href="https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-linux-x86_64.AppImage">
+                <span><span class="bi"><span class="zh">AppImage</span><span class="en">AppImage</span></span></span><span class="fmt">APPIMAGE</span>
+              </a>
+              <a class="dl-btn" href="https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-linux-x86_64.deb">
+                <span><span class="bi"><span class="zh">Debian / Ubuntu 安装包</span><span class="en">Debian / Ubuntu package</span></span></span><span class="fmt">DEB</span>
+              </a>
+              <a class="dl-btn" href="https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-linux-x86_64.tar.gz">
+                <span><span class="bi"><span class="zh">便携目录</span><span class="en">Portable directory</span></span></span><span class="fmt">TAR.GZ</span>
+              </a>
+            </div>
+            <p class="dl-note"><span class="bi"><span class="zh">AppImage 下载后先 <code>chmod +x</code>,deb 用 <code>sudo apt install ./StickySnap-linux-x86_64.deb</code>。目前仅支持 X11 会话,Wayland 暂不可用。</span><span class="en">Run <code>chmod +x</code> on the AppImage first; install the deb with <code>sudo apt install ./StickySnap-linux-x86_64.deb</code>. X11 sessions only — Wayland is not supported yet.</span></span></p>
+          </article>
+        </div>
+        <p class="dl-foot">
+          <span class="bi"><span class="zh">全部指向最新 Release(v0.0.2)</span><span class="en">ALL LINKS POINT AT THE LATEST RELEASE (V0.0.2)</span></span>
+          <a href="https://github.com/CarlOpenLab/StickySnap/releases/latest/download/SHA256SUMS.txt">SHA256SUMS.txt</a>
+          <a href="https://github.com/CarlOpenLab/StickySnap/releases"><span class="bi"><span class="zh">全部版本</span><span class="en">All releases</span></span></a>
+        </p>
+      </div>
+    </section>
+
     <!-- ================= ROADMAP ================= -->
     <section class="roadmap" id="roadmap" data-screen-label="roadmap">
       <div class="wrap">
@@ -669,7 +772,7 @@ figcaption{font-size:14px;color:var(--muted);line-height:1.6}
             <ul>
               <li><span class="bi"><span class="zh">虚拟桌面绑定、Solo 模式、批量操作</span><span class="en">Virtual-desktop binding, Solo mode, batch actions</span></span></li>
               <li><span class="bi"><span class="zh">AI:本地优先、无感集成、BYOK 可选</span><span class="en">AI: local-first, invisible, optional BYOK</span></span></li>
-              <li><span class="bi"><span class="zh">Linux（Qt 6，规划中）</span><span class="en">Linux (Qt 6, planned)</span></span></li>
+              <li><span class="bi"><span class="zh">Linux Wayland 支持（X11 已发布）</span><span class="en">Wayland support on Linux (X11 shipped)</span></span></li>
             </ul>
           </li>
         </ol>
@@ -696,13 +799,17 @@ figcaption{font-size:14px;color:var(--muted);line-height:1.6}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H12l-4.5 4v-4h-1a2 2 0 0 1-2-2Z"></path></svg>
             <span class="bi"><span class="zh">问题反馈</span><span class="en">Feedback</span></span>
           </a>
+          <a href="#download" title="下载">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"></path><path d="m7 10 5 5 5-5"></path><path d="M5 20h14"></path></svg>
+            <span class="bi"><span class="zh">下载</span><span class="en">Download</span></span>
+          </a>
           <a href="#roadmap" title="路线图">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v4"></path><path d="M12 16v4"></path><path d="M4 12h4"></path><path d="M16 12h4"></path><circle cx="12" cy="12" r="1.6"></circle></svg>
             <span class="bi"><span class="zh">完整路线图</span><span class="en">Full roadmap</span></span>
           </a>
         </nav>
       </div>
-      <p class="smallprint"><span class="bi"><span class="zh">WINDOWS 10/11 X64 · MACOS 14+ (QT 预览) · V0.0.1 (M0)· 免费使用 · 功能以实际发布为准</span><span class="en">WINDOWS 10/11 X64 · MACOS 14+ (QT PREVIEW) · V0.0.1 (M0) · FREE · FEATURES SHIP AS THEY'RE READY</span></span></p>
+      <p class="smallprint"><span class="bi"><span class="zh">WINDOWS 10/11 X64 · MACOS 14+ · LINUX X11 · V0.0.2 (M0) · 免费使用 · 功能以实际发布为准</span><span class="en">WINDOWS 10/11 X64 · MACOS 14+ · LINUX X11 · V0.0.2 (M0) · FREE · FEATURES SHIP AS THEY'RE READY</span></span></p>
     </div>
   </footer>
 

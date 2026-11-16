@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=StickySnap
+GenericName=Screenshot and pin tool
+Comment=Capture, annotate and pin screenshots to your desktop
+Exec=StickySnap
+Icon=stickysnap
+Terminal=false
+Categories=Graphics;Utility;
+Keywords=screenshot;snip;capture;pin;annotation;
+StartupNotify=false
+StartupWMClass=StickySnap

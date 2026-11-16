@@ -7,14 +7,14 @@
 **把截图钉在桌面上。**<br>
 *Pin a screenshot to your desktop.*
 
-Snipaste 式截图 + 贴图工具 · Windows 原生 + macOS Qt 6 预览 · 免费无广告 · 纯本地
+Snipaste 式截图 + 贴图工具 · Windows 原生 + Windows / macOS / Linux Qt 6 全功能版 · 免费无广告 · 纯本地
 
 [官网](https://carlopenlab.github.io/StickySnap/) · [下载](https://github.com/CarlOpenLab/StickySnap/releases) · [产品文档](docs/PRD-M0.md) · [问题反馈](https://github.com/CarlOpenLab/StickySnap/issues)
 
 [![windows-build](https://github.com/CarlOpenLab/StickySnap/actions/workflows/windows.yml/badge.svg)](https://github.com/CarlOpenLab/StickySnap/actions/workflows/windows.yml)
 [![pages](https://github.com/CarlOpenLab/StickySnap/actions/workflows/pages.yml/badge.svg)](https://github.com/CarlOpenLab/StickySnap/actions/workflows/pages.yml)
-![platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64%20%7C%20macOS%2014%2B-2F6FED)
-![version](https://img.shields.io/badge/version-v0.0.1-2F6FED)
+![platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64%20%7C%20macOS%2014%2B%20%7C%20Linux%20X11-2F6FED)
+![version](https://img.shields.io/badge/version-v0.0.2-2F6FED)
 ![milestone](https://img.shields.io/badge/milestone-M0-2F6FED)
 ![runtime](https://img.shields.io/badge/runtime-Win32%20%7C%20Qt%206-4ADE80)
 ![license](https://img.shields.io/badge/license-MIT-2F6FED)
@@ -31,7 +31,7 @@ StickySnap 是一个把「贴图」当作第一优先级刚需的截图工具。
 
 贴图是常驻的桌面工作台：可拖动、缩放、调透明度、鼠标穿透，重启后自动恢复。所有处理都在本地完成，不联网、无广告、无账号。
 
-> English: StickySnap is a Snipaste-style screenshot and pin tool. The Windows build is native C++17/Win32; the cross-platform build uses C++20 and Qt 6. Press `F1` to capture with window snapping, `Enter` to pin to the desktop, `F3` to pin the clipboard. Pins persist across reboots. Local-only, free, no ads.
+> English: StickySnap is a Snipaste-style screenshot and pin tool. The Windows build is native C++17/Win32; the cross-platform build (Windows, macOS, Linux X11) uses C++20 and Qt 6. Press `F1` to capture with window snapping, `Enter` to pin to the desktop, `F3` to pin the clipboard. Pins persist across reboots. Local-only, free, no ads.
 
 ## 平台与状态
 
@@ -84,24 +84,29 @@ Qt 版与 Windows 原生版共享同一套选区、标注、设置和会话模�
 | 平台 | Windows / macOS / Linux（X11） | Windows / macOS / Linux | Windows / macOS | Windows | macOS |
 | 价格 | 免费（MIT 开源） | 免费 / 专业版付费 | 免费 / 会员增值 | 免费开源 | 付费 |
 
-StickySnap 的取舍很明确：**贴图优先**。长截图、OCR 这类能力还没做，就不写进功能表——本仓库只承诺已经能用起来的东西。贴图「重启后还在」「不进截图」「可点穿」三件事，是目前和上面这些工具拉开差距的地方。
+StickySnap 的取舍很明确：**贴图优先**。长截图这类能力还没做，就不写进功能表——本仓库只承诺已经能用起来的东西。贴图「重启后还在」「不进截图」「可点穿」三件事，是目前和上面这些工具拉开差距的地方。
 
 ## 下载
 
-推 `v*` tag 后由 [release.yml](.github/workflows/release.yml) 自动构建并在 [Releases](https://github.com/CarlOpenLab/StickySnap/releases) 发布以下资产：
+最新稳定版 **v0.0.2**。直接下载（始终指向最新 Release）：
 
-| 资产 | 平台 | 说明 |
+| 平台 | 安装包 | 便携版 |
 |---|---|---|
-| `StickySnap-windows-qt-x64.zip` | Windows 10+ | **推荐**：Qt 跨平台版（全功能版），解压即用，含 Qt 运行库 |
-| `StickySnap-setup.exe` | Windows 10+ | 同上的安装器（按用户安装，可选桌面快捷方式 / 开机自启） |
-| `StickySnap-windows-x64.zip` | Windows 10+ | 原生 Win32 版（M0 冻结版，单 exe 约 1 MB，无 Qt 依赖） |
-| `StickySnap-macos-universal.zip` | macOS 14+ | Apple Silicon / Intel 通用，解压得到 `StickySnap.app` |
-| `StickySnap-macos.dmg` | macOS 14+ | 同上的 DMG 安装镜像（拖入 Applications） |
-| `StickySnap-linux-x64.tar.gz` | Linux (X11) | 便携包：二进制 + Qt 运行库 + `run.sh`（Wayland 不支持） |
+| Windows 10+ | [StickySnap-setup.exe](https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-setup.exe)（Qt 全功能版） | [Qt 全功能 .zip](https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-windows-qt-x64.zip) · [原生 M0 .zip](https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-windows-x64.zip) |
+| macOS 14+ | [StickySnap-macos.dmg](https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-macos.dmg)（Apple Silicon + Intel） | [.zip](https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-macos-universal.zip) |
+| Linux (X11) | [.AppImage](https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-linux-x86_64.AppImage) · [.deb](https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-linux-x86_64.deb) | [.tar.gz](https://github.com/CarlOpenLab/StickySnap/releases/latest/download/StickySnap-linux-x86_64.tar.gz) |
 
-CI 每次推送也会上传 artifact（需登录 GitHub）：[windows-build](https://github.com/CarlOpenLab/StickySnap/actions/workflows/windows.yml)（原生 + Qt 两个包）、[macos-build](https://github.com/CarlOpenLab/StickySnap/actions/workflows/macos.yml)。
+安装方式：
 
-Windows 可执行文件未做代码签名，首次运行若被 SmartScreen 拦截，选择「更多信息 → 仍要运行」。macOS 包为 ad-hoc 签名（未公证），解压后若提示「已损坏，无法打开」，在终端执行 `xattr -cr StickySnap.app` 或右键选择「打开」即可；首次截图需要在「系统设置 → 隐私与安全性 → 屏幕录制」中授权 StickySnap。macOS 仍可从源码构建，见下方「macOS（Qt 6）」。
+- **Windows**：双击 `StickySnap-setup.exe`。按当前用户安装，无需管理员权限；可选桌面快捷方式与开机启动。
+- **macOS**：打开 DMG，把 StickySnap 拖进「应用程序」。
+- **Linux**：AppImage 下载后 `chmod +x` 直接运行；Debian / Ubuntu 可执行 `sudo apt install ./StickySnap-linux-x86_64.deb`。目前只支持 X11，Wayland 会话无法抓屏。
+
+校验和：[SHA256SUMS.txt](https://github.com/CarlOpenLab/StickySnap/releases/latest/download/SHA256SUMS.txt)。全部历史版本见 [Releases](https://github.com/CarlOpenLab/StickySnap/releases)。
+
+Windows 可执行文件未做代码签名，首次运行若被 SmartScreen 拦截，选择「更多信息 → 仍要运行」。macOS 包为 ad-hoc 签名（未公证），若提示「已损坏，无法打开」，在终端执行 `xattr -cr /Applications/StickySnap.app` 或右键选择「打开」即可；首次截图需要在「系统设置 → 隐私与安全性 → 屏幕录制」中授权 StickySnap。macOS 仍可从源码构建，见下方「macOS（Qt 6）」。
+
+CI 每次推送也会上传 artifact（需登录 GitHub）：[windows-build](https://github.com/CarlOpenLab/StickySnap/actions/workflows/windows.yml)、[macos-build](https://github.com/CarlOpenLab/StickySnap/actions/workflows/macos.yml)、[linux-build](https://github.com/CarlOpenLab/StickySnap/actions/workflows/linux.yml)。
 
 ## 使用
 
@@ -209,10 +214,10 @@ ctest --test-dir build --output-on-failure
 
 | 工作流 | 触发 | 作用 |
 |---|---|---|
-| [`windows.yml`](.github/workflows/windows.yml) | push / PR / 手动 | 构建原生版 + Qt 版（windeployqt），各跑 `ctest` 并上传 artifact |
-| [`macos.yml`](.github/workflows/macos.yml) | push / PR / 手动 | 构建 macOS 版（Qt portable、universal）、跑 Qt Test、macdeployqt + ad-hoc 签名后上传 zip artifact |
-| [`linux.yml`](.github/workflows/linux.yml) | push / PR / 手动 | 构建 Linux (X11) Qt 版、跑 Qt Test、打包便携 tar.gz artifact |
-| [`release.yml`](.github/workflows/release.yml) | 推送 `v*` tag | 构建 Windows（原生 zip + Qt zip + 安装器）、macOS（zip + DMG）、Linux（tar.gz）并发布 Release |
+| [`windows.yml`](.github/workflows/windows.yml) | push / PR / 手动 | 构建原生版 + Qt 版（windeployqt + Inno Setup 安装器），各跑 `ctest` 并上传 artifact |
+| [`macos.yml`](.github/workflows/macos.yml) | push / PR / 手动 | 构建 universal Qt 版、跑 Qt Test、macdeployqt + ad-hoc 签名并上传 zip/DMG artifact |
+| [`linux.yml`](.github/workflows/linux.yml) | push / PR / 手动 | 构建 Linux (X11) Qt 版、跑 Qt Test、打包 AppImage + deb + tar.gz |
+| [`release.yml`](.github/workflows/release.yml) | 推送 `v*` tag / 手动指定 tag | 构建 Windows（原生 zip + Qt zip + 安装器）、macOS（universal zip + DMG）、Linux（AppImage + deb + tar.gz），并生成 `SHA256SUMS.txt` |
 | [`pages.yml`](.github/workflows/pages.yml) | `site/` 变更 / 手动 | 部署落地页到 GitHub Pages |
 
 ## 架构
@@ -264,7 +269,7 @@ portable/            Qt 6 跨平台版
 
 ```
 .github/workflows/   CI：Windows / macOS / Linux 构建、Release、Pages
-packaging/           Inno Setup 安装器脚本
+packaging/           Windows Inno Setup 安装器、Linux AppImage/deb 打包脚本
 assets/              品牌源图与生成的应用图标
 site/                落地页（GitHub Pages 源目录）
 src/                 Windows 原生版源码（M0 冻结参考实现）
