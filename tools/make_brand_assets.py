@@ -275,7 +275,7 @@ def make_og(icon: Image.Image) -> Image.Image:
                   font=chip_label_font, fill=(0x99, 0xA4, 0xB6))
         chip_x += chip_width + 12
 
-    draw.text((x, 520), "Windows 原生 · macOS Qt 预览 · 免费 · 纯本地",
+    draw.text((x, 520), "Windows 原生 · macOS / Linux Qt · 免费 · 纯本地",
               font=tiny_cjk_font, fill=(0x7C, 0x87, 0x9B))
 
     draw.rounded_rectangle((width - 208, 74, width - 74, 112),

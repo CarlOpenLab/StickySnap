@@ -79,8 +79,11 @@ jobs:
         run: |
           $version = $env:APP_VERSION.TrimStart('v')
           echo "version=$version" >> $env:GITHUB_ENV
+          # Quote the definition: an unquoted `$version` can reach CMake
+          # literally, which then ends up in app-icon.rc and breaks rc.exe.
           cmake -S portable -B build-qt -DCMAKE_BUILD_TYPE=Release `
-            -DSTICKYSNAP_VERSION=$version
+            "-DSTICKYSNAP_VERSION=$version"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Build
         shell: pwsh
