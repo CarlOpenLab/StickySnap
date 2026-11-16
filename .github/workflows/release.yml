@@ -185,7 +185,8 @@ jobs:
 
   release-linux:
     needs: prepare
-    runs-on: ubuntu-latest
+    # Match linux.yml: broad glibc compatibility for AppImage/deb.
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 

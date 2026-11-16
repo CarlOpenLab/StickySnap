@@ -13,7 +13,9 @@ concurrency:
 
 jobs:
   build-linux:
-    runs-on: ubuntu-latest
+    # Build on the oldest supported LTS so the AppImage/deb stay
+    # compatible with Ubuntu 22.04+ instead of only the current runner.
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
